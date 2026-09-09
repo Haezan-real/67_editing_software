@@ -150,12 +150,16 @@ async function main() {
     const api = (window as any).electronAPI;
     
     let currentShaderName = 'default_shader'; // Can be updated via localStorage later
+    let rendererRequestId = 0;
 
     async function initializeRenderer(shaderName: string) {
+      const requestId = ++rendererRequestId;
       console.log(`[ShaderWindow] Initializing shader: ${shaderName}`);
       
       // Load and create new renderer dynamically.
       const createShaderRenderer = await loadShaderRenderer(shaderName);
+      if (stopped || requestId !== rendererRequestId) return false;
+
       const nextRenderer = createShaderRenderer();
       
       const initialized = nextRenderer.init(gl, { customCursor });
@@ -165,6 +169,12 @@ async function main() {
         console.error('Overlay: Failed to initialize shader renderer');
         return false;
       }
+
+      if (stopped || requestId !== rendererRequestId) {
+        nextRenderer.destroy(gl);
+        return false;
+      }
+
       const previousRenderer = renderer;
       renderer = nextRenderer;
       previousRenderer?.destroy(gl);
@@ -232,7 +242,6 @@ async function main() {
     if (api) {
       api.on('apply-shader', async (newShaderName: string) => {
         console.log(`[ShaderWindow] Received request to change shader to: ${newShaderName}`);
-        currentShaderName = newShaderName;
         
         // Just call our robust initializeRenderer function!
         // It already handles destroying the old renderer.
@@ -241,8 +250,9 @@ async function main() {
         const success = await initializeRenderer(newShaderName);
         
         if (!success) {
-          console.warn('[ShaderWindow] Shader change failed, but fallback should have activated.');
+          console.warn(`[ShaderWindow] Shader change ignored or failed: ${newShaderName}`);
         } else {
+          currentShaderName = newShaderName;
           console.log(`[ShaderWindow] ✅ Successfully switched to: ${newShaderName}`);
         }
       });
