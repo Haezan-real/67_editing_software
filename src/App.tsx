@@ -98,7 +98,6 @@ function AppContent() {
   const [rollClipId, setRollClipId] = useState<string | null>(null);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [hasModalOpen, setHasModalOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [shaderFps, setShaderFps] = useState<number | null>(null);
   const [shaderEnabled, setShaderEnabled] = useState(false);
   
@@ -839,29 +838,7 @@ function AppContent() {
           <audio key={item.id} id={`aud-${item.id}`} src={item.src} style={{ display: 'none' }} preload="auto" />
         ) : null
       )}
-      <header className="app-header"
-        onMouseDown={(e) => {
-          setIsDragging(true);
-          const api = (window as any).electronAPI;
-          if (api) api.send('start-drag', { x: e.screenX, y: e.screenY });
-        }}
-        onMouseMove={(e) => {
-          if (isDragging) {
-            const api = (window as any).electronAPI;
-            if (api) api.send('dragging', { x: e.screenX, y: e.screenY });
-          }
-        }}
-        onMouseUp={() => {
-          setIsDragging(false);
-          const api = (window as any).electronAPI;
-          if (api) api.send('stop-drag');
-        }}
-        onMouseLeave={() => {
-          setIsDragging(false);
-          const api = (window as any).electronAPI;
-          if (api) api.send('stop-drag');
-        }}
-      >
+      <header className="app-header">
         <div className="app-logo">
           <img src="/src/67_editing_software.ico" alt="67 editing software" style={{ width: 22, height: 22, transform: 'translateY(0px)', }} />
         

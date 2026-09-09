@@ -272,25 +272,9 @@ class WindowManager {
     console.log('✅ display media handler registered');
   }
 
-  // ── Manual Window Dragging ───────────────────────────────────────────────
+  // ── Window Dragging ─────────────────────────────────────────────────────
 
   setupDragHandling() {
-    ipcMain.on('start-drag', (_event, coords) => {
-      this.isDragging = true;
-      const bounds = this.appWindow.getBounds();
-      this.dragOffsetX = coords.x - bounds.x;
-      this.dragOffsetY = coords.y - bounds.y;
-    });
-
-    ipcMain.on('dragging', (_event, coords) => {
-      if (this.isDragging && this.appWindow && !this.appWindow.isDestroyed()) {
-        this.appWindow.setPosition(
-          Math.round(coords.x - this.dragOffsetX),
-          Math.round(coords.y - this.dragOffsetY)
-        );
-      }
-    });
-
     ipcMain.on('change-shader', (event, shaderName) => {
       console.log(`[Main Process] 🔄 Received change-shader: ${shaderName}`);
       
@@ -303,9 +287,6 @@ class WindowManager {
       }
     });
 
-    ipcMain.on('stop-drag', () => {
-      this.isDragging = false;
-    });
     console.log('✅ drag handling registered');
   }
 
