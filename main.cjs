@@ -198,10 +198,15 @@ class WindowManager {
       }
     };
 
+    let stateSyncTimer = null;
     const syncBoundsAfterStateChange = () => {
       if (!this.shaderWindow || !this.appWindow) return;
       if (this.shaderWindow.isDestroyed() || this.appWindow.isDestroyed()) return;
-      setImmediate(syncBounds);
+      if (stateSyncTimer) clearTimeout(stateSyncTimer);
+      stateSyncTimer = setTimeout(() => {
+        stateSyncTimer = null;
+        syncBounds();
+      }, 75);
     };
 
     this.appWindow.on('move', syncBounds);

@@ -178,13 +178,6 @@ function AppContent() {
     try { const v = window.localStorage.getItem('juicecut.settings.guiScale'); return v ? Number(v) / 100 : 1; } catch { return 1; }
   };
   
-  // Calculate pixel positions from stored percentages
-  // These are pure percentages of the viewport — no GUI scale division.
-  // The splitter position as a % of the total viewport stays constant regardless of GUI scale.
-  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
-  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
-  const leftWidth = Math.round(viewportWidth * leftWidthPct / 100);
-  const timelineHeight = Math.round(viewportHeight * timelineHeightPct / 100);
   // guiScale is still read to trigger re-renders when scale changes
   const guiScale = getGuiScale();
   void guiScale; // used to force re-render dependency
@@ -900,8 +893,8 @@ function AppContent() {
       <div
         className="workspace"
         style={{
-          '--timeline-height': `${timelineHeight}px`,
-          '--left-width': `${leftCollapsed ? 36 : leftWidth}px`,
+          '--timeline-height': `${timelineHeightPct}vh`,
+          '--left-width': leftCollapsed ? '36px' : `${leftWidthPct}vw`,
           '--vsplit-width': leftCollapsed ? '0px' : '8px',
         } as React.CSSProperties}
       >
