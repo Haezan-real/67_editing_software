@@ -118,6 +118,47 @@ function revokeMediaResources(items: Iterable<Pick<MediaItem, 'src'>>): void {
     URL.revokeObjectURL(item.src);
   }
 }
+function waitForVideoFrame(video: HTMLVideoElement, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.reject(new DOMException('Export cancelled', 'AbortError'));
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      video.removeEventListener('error', handleError);
+      signal.removeEventListener('abort', handleAbort);
+    };
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('Unable to decode a video frame during export.'));
+    };
+    const handleAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new DOMException('Export cancelled', 'AbortError'));
+    };
+
+    video.addEventListener('error', handleError, { once: true });
+    signal.addEventListener('abort', handleAbort, { once: true });
+
+    const requestVideoFrameCallback = (video as HTMLVideoElement & {
+      requestVideoFrameCallback?: (callback: () => void) => number;
+    }).requestVideoFrameCallback;
+    if (requestVideoFrameCallback) {
+      requestVideoFrameCallback.call(video, finish);
+    } else {
+      video.addEventListener('seeked', finish, { once: true });
+    }
+  });
+}
 
 
 
@@ -137,11 +178,13 @@ function AppContent() {
   const [shaderEnabled, setShaderEnabled] = useState(false);
   const isMountedRef = useRef(true);
   const mediaItemsRef = useRef(mediaItems);
+  const exportAbortRef = useRef<AbortController | null>(null);
   mediaItemsRef.current = mediaItems;
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
+      exportAbortRef.current?.abort();
       revokeMediaResources(mediaItemsRef.current.values());
     };
   }, []);
@@ -789,8 +832,16 @@ function AppContent() {
   }, [history, snapshot]);
 
   const handleExport = useCallback(async () => {
+    exportAbortRef.current?.abort();
+    const abortController = new AbortController();
+    exportAbortRef.current = abortController;
+    const { signal } = abortController;
     const videoClips = clips.filter(c => c.type === 'video' && c.track === 0).sort((a, b) => a.startFrame - b.startFrame);
-    if (videoClips.length === 0) { alert('No video clips on track V1 to export.'); return; }
+    if (videoClips.length === 0) {
+      exportAbortRef.current = null;
+      alert('No video clips on track V1 to export.');
+      return;
+    }
     const canvas = document.createElement('canvas');
     canvas.width = 854; canvas.height = 480;
     const ctx = canvas.getContext('2d')!;
@@ -798,20 +849,46 @@ function AppContent() {
     let recorder: MediaRecorder;
     try { recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' }); } catch { recorder = new MediaRecorder(stream); }
     const chunks: BlobPart[] = [];
+    let exportCompleted = false;
     recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-    recorder.onstop = () => { const blob = new Blob(chunks, { type: 'video/webm' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'export.webm'; a.click(); URL.revokeObjectURL(url); };
-    recorder.start();
-    let frame = 0;
-    const renderFrame = () => {
-      if (frame > totalFrames) { recorder.stop(); return; }
-      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 854, 480);
-      const videoClip = videoClips.find(c => frame >= c.startFrame && frame < c.endFrame);
-      if (videoClip) {
-        const media = mediaItems.get(videoClip.mediaId);
-        if (media) {
-          const videoEl = document.getElementById(`vid-${media.id}`) as HTMLVideoElement | null;
-          if (videoEl && videoEl.readyState >= 2) {
+    recorder.onstop = () => {
+      stream.getTracks().forEach(track => track.stop());
+      if (!exportCompleted) return;
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'export.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    try {
+      recorder.start();
+      for (let frame = 0; frame <= totalFrames; frame++) {
+        if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, 854, 480);
+        const videoClip = videoClips.find(c => frame >= c.startFrame && frame < c.endFrame);
+        if (videoClip) {
+          const media = mediaItems.get(videoClip.mediaId);
+          const videoEl = media ? document.getElementById(`vid-${media.id}`) as HTMLVideoElement | null : null;
+          if (videoEl) {
+            if (videoEl.readyState < 2) {
+              await new Promise<void>((resolve, reject) => {
+                const handleLoadedData = () => { cleanup(); resolve(); };
+                const handleError = () => { cleanup(); reject(new Error('Unable to load video for export.')); };
+                const cleanup = () => {
+                  videoEl.removeEventListener('loadeddata', handleLoadedData);
+                  videoEl.removeEventListener('error', handleError);
+                };
+                videoEl.addEventListener('loadeddata', handleLoadedData, { once: true });
+                videoEl.addEventListener('error', handleError, { once: true });
+                signal.addEventListener('abort', () => { cleanup(); reject(new DOMException('Export cancelled', 'AbortError')); }, { once: true });
+              });
+            }
             videoEl.currentTime = (frame - videoClip.startFrame + videoClip.srcIn) / FPS;
+            await waitForVideoFrame(videoEl, signal);
             let alpha = 1;
             const len = videoClip.endFrame - videoClip.startFrame;
             const rel = frame - videoClip.startFrame;
@@ -822,14 +899,23 @@ function AppContent() {
             const cAr = 854 / 480;
             let w = 854, h = 480, x = 0, y = 0;
             if (ar > cAr) { h = 854 / ar; y = (480 - h) / 2; } else { w = 480 * ar; x = (854 - w) / 2; }
-            ctx.drawImage(videoEl, x, y, w, h); ctx.globalAlpha = 1;
+            ctx.drawImage(videoEl, x, y, w, h);
+            ctx.globalAlpha = 1;
           }
         }
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       }
-      frame++;
-      setTimeout(renderFrame, 1000 / FPS);
-    };
-    renderFrame();
+      exportCompleted = true;
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.error('Export failed:', error);
+        alert('Export failed. Check the console for details.');
+      }
+    } finally {
+      if (recorder.state !== 'inactive') recorder.stop();
+      if (recorder.state === 'inactive') stream.getTracks().forEach(track => track.stop());
+      if (exportAbortRef.current === abortController) exportAbortRef.current = null;
+    }
   }, [clips, mediaItems, totalFrames]);
 
   const rollClip = rollClipId ? clips.find(c => c.id === rollClipId) ?? null : null;
