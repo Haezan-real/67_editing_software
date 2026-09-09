@@ -56,15 +56,15 @@ export function OpenShaderSelector(onCloseCallback?: () => void) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
+  const modalId = result.id!;
   
   const closeDirectly = () => {
     try { root.unmount(); } catch (e) {}
     if (container.parentNode) container.parentNode.removeChild(container);
-    (window as any).__popClose?.();
-    modalManager.close('shaderSelector');
+    modalManager.unregister(modalId);
   };
   
-  (window as any).__pushClose?.(closeDirectly);
+  modalManager.registerClose(modalId, closeDirectly);
   root.render(<ShaderSelectorModal onClose={closeDirectly} />);
   
   if (onCloseCallback) {

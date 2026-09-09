@@ -16,6 +16,18 @@ export interface ModalManagerState {
   };
 }
 
+interface ModalInstance {
+  id: number;
+  type: ModalType;
+  close?: () => void;
+}
+
+interface ModalRequest {
+  allowed: boolean;
+  reason?: string;
+  id?: number;
+}
+
 class ModalManager {
   private state: ModalManagerState = {
     openModals: new Set(),
@@ -28,6 +40,8 @@ class ModalManager {
   
   private permissions: Map<ModalType, ModalPermission> = new Map();
   private listeners: Set<(state: ModalManagerState) => void> = new Set();
+  private instances: ModalInstance[] = [];
+  private nextInstanceId = 1;
   
   constructor() {
     // Initialize settings from localStorage so the manager reflects
@@ -49,6 +63,16 @@ class ModalManager {
         this.notifyListeners();
       }
     }) as EventListener);
+
+    window.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (this.closeTop()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
   }
   
   // Subscribe to state changes
@@ -74,7 +98,7 @@ class ModalManager {
   }
   
   // Request to open a modal - returns whether it's allowed and optional reason
-  requestOpen(modalType: ModalType): { allowed: boolean; reason?: string } {
+  requestOpen(modalType: ModalType): ModalRequest {
     const permission = this.permissions.get(modalType);
     
     if (permission) {
@@ -84,18 +108,39 @@ class ModalManager {
       }
     }
     
+    const id = this.nextInstanceId++;
+    this.instances.push({ id, type: modalType });
     this.state.openModals.add(modalType);
     this.notifyListeners();
-    
-    // Push to global close stack for escape key handling
-    // This will be handled by the calling component
-    return { allowed: true };
+    return { allowed: true, id };
   }
-  
-  // Close a modal
+
+  registerClose(id: number, close: () => void): void {
+    const instance = this.instances.find(item => item.id === id);
+    if (instance) instance.close = close;
+  }
+
+  unregister(id: number): void {
+    this.removeInstance(id);
+  }
+
   close(modalType: ModalType) {
-    this.state.openModals.delete(modalType);
-    this.notifyListeners();
+    const instance = [...this.instances].reverse().find(item => item.type === modalType);
+    if (instance) this.closeInstance(instance.id);
+  }
+
+  closeInstance(id: number): void {
+    const instance = this.instances.find(item => item.id === id);
+    if (!instance) return;
+    this.removeInstance(id);
+    instance.close?.();
+  }
+
+  closeTop(): boolean {
+    const instance = this.instances[this.instances.length - 1];
+    if (!instance) return false;
+    this.closeInstance(instance.id);
+    return true;
   }
   
   // Check if a specific modal is open
@@ -110,7 +155,17 @@ class ModalManager {
   
   // Get count of how many times a specific modal is open
   getOpenCount(modalType: ModalType): number {
-    return Array.from(this.state.openModals).filter(m => m === modalType).length;
+    return this.instances.filter(instance => instance.type === modalType).length;
+  }
+
+  private removeInstance(id: number): void {
+    const index = this.instances.findIndex(instance => instance.id === id);
+    if (index === -1) return;
+    const [removed] = this.instances.splice(index, 1);
+    if (!this.instances.some(instance => instance.type === removed.type)) {
+      this.state.openModals.delete(removed.type);
+    }
+    this.notifyListeners();
   }
   
   // Notify all listeners of state change
@@ -126,19 +181,6 @@ export const modalManager = new ModalManager();
 export const __canOpenModal = (): boolean => {
   return modalManager.getState().settings.allowMultipleMenus || !modalManager.hasAnyOpen();
 };
-
-export const __pushClose = (fn: () => void): void => {
-  // This is kept for backwards compatibility with existing close stack
-  // The modal manager handles this internally now
-};
-
-export const __popClose = (): void => {
-  // Backwards compatibility
-};
-
-export const __peekClose = ((): (() => void) | null => {
-  return null; // Deprecated - use modalManager instead
-});
 
 export const __isAnyModalOpen = (): boolean => {
   return modalManager.hasAnyOpen();

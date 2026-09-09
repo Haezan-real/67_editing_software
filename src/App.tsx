@@ -229,7 +229,7 @@ function AppContent() {
   // Listen for shader changes from the shader selector
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = getSettingsChangedDetail(e);
+      const detail = (e as CustomEvent<{ shaderName?: string }>).detail;
       if (detail?.shaderName) {
         const api = (window as any).electronAPI;
         if (api?.send) {
@@ -549,12 +549,9 @@ function AppContent() {
         // Don't intercept when typing in inputs
         const target = e.target as HTMLElement | null;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-        // Check close stack first (Settings, TorusMenuEditor)
-        const topClose = (window as any).__peekClose?.();
-        if (topClose) {
+        if (modalManager.closeTop()) {
           e.preventDefault();
           e.stopPropagation();
-          topClose();
           return;
         }
         // React-state modals
@@ -720,6 +717,7 @@ function AppContent() {
               multipleMenusToast.show();
               return;
             }
+            modalManager.registerClose(result.id!, () => setShowStyle(false));
             setShowStyle(true);
           }} title="Style">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -727,11 +725,6 @@ function AppContent() {
             </svg>
           </button>
           <button className="icon-btn" onClick={() => {
-            const result = modalManager.requestOpen('shaderSelector');
-            if (!result.allowed) {
-              multipleMenusToast.show();
-              return;
-            }
             OpenShaderSelector();
           }} title="Shaders">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -784,6 +777,7 @@ function AppContent() {
               multipleMenusToast.show();
               return;
             }
+            modalManager.registerClose(result.id!, () => setShowExport(false));
             setShowExport(true);
           }} />
           <ViewerControls
