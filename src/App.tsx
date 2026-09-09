@@ -100,6 +100,13 @@ function AppContent() {
   const [hasModalOpen, setHasModalOpen] = useState(false);
   const [shaderFps, setShaderFps] = useState<number | null>(null);
   const [shaderEnabled, setShaderEnabled] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   // Check if shader window is enabled from config
   useEffect(() => {
@@ -585,33 +592,50 @@ function AppContent() {
 
   const handleAddMedia = useCallback(async (files: FileList) => {
     history.push(snapshot());
-    const newItems = new Map(mediaItems);
-    for (const file of Array.from(files)) {
+    const supportedFiles = Array.from(files).filter(file => {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      return ['mp4', 'mkv', 'mov', 'webm', 'mp3', 'ogg', 'wav', 'aac', 'png', 'jpg', 'jpeg', 'avif', 'gif', 'webp'].includes(ext);
+    });
+
+    for (const file of supportedFiles) {
+      if (!isMountedRef.current) return;
       const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
       const isVideo = ['mp4', 'mkv', 'mov', 'webm'].includes(ext);
       const isAudio = ['mp3', 'ogg', 'wav', 'aac'].includes(ext);
-      const isImage = ['png', 'jpg', 'jpeg', 'avif', 'gif', 'webp'].includes(ext);
-      if (!isVideo && !isAudio && !isImage) continue;
       const type: MediaItem['type'] = isVideo ? 'video' : isAudio ? 'audio' : 'image';
       const src = URL.createObjectURL(file);
       const duration = await loadMediaDuration(file, type);
+      if (!isMountedRef.current) {
+        URL.revokeObjectURL(src);
+        return;
+      }
       const thumbnail = await generateThumbnail(file, type);
+      if (!isMountedRef.current) {
+        URL.revokeObjectURL(src);
+        return;
+      }
       const item: MediaItem = { id: generateId(), name: file.name, type, file, src, duration, thumbnail };
-      newItems.set(item.id, item);
+      setMediaItems(previous => {
+        const next = new Map(previous);
+        next.set(item.id, item);
+        return next;
+      });
     }
-    setMediaItems(newItems);
-  }, [mediaItems]);
+  }, [history, snapshot]);
 
   const handleDropMediaPool = useCallback((e: React.DragEvent) => { e.preventDefault(); if (e.dataTransfer.files.length) handleAddMedia(e.dataTransfer.files); }, [handleAddMedia]);
   const handleDragOverMediaPool = useCallback((e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }, []);
 
   const handleRemoveMedia = useCallback((id: string) => {
     history.push(snapshot());
-    const newItems = new Map(mediaItems);
-    const item = newItems.get(id);
+    const item = mediaItems.get(id);
     if (item) URL.revokeObjectURL(item.src);
-    newItems.delete(id);
-    setMediaItems(newItems);
+    setMediaItems(previous => {
+      if (!previous.has(id)) return previous;
+      const next = new Map(previous);
+      next.delete(id);
+      return next;
+    });
     setClips(prev => prev.filter(c => c.mediaId !== id));
   }, [mediaItems, history, snapshot]);
 
