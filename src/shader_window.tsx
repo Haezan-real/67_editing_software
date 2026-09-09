@@ -71,6 +71,41 @@ async function main() {
   let processor: MediaStreamTrackProcessor | null = null;
   let reader: ReadableStreamDefaultReader<VideoFrame> | null = null;
   let stopped = false;
+  let renderer: any = null;
+  let glForCleanup: WebGL2RenderingContext | null = null;
+  let latestFrame: VideoFrame | null = null;
+  let rafId = 0;
+  let resizeHandler: (() => void) | null = null;
+  let beforeUnloadHandler: (() => void) | null = null;
+  let trackEndedHandler: (() => void) | null = null;
+  let pipelineCleanedUp = false;
+
+  const stopPipeline = () => {
+    if (pipelineCleanedUp) return;
+    pipelineCleanedUp = true;
+    stopped = true;
+
+    if (rafId) cancelAnimationFrame(rafId);
+    if (resizeHandler) window.removeEventListener('resize', resizeHandler);
+    if (beforeUnloadHandler) window.removeEventListener('beforeunload', beforeUnloadHandler);
+    if (trackEndedHandler && videoTrack) videoTrack.removeEventListener('ended', trackEndedHandler);
+
+    void reader?.cancel().catch(() => {});
+    reader = null;
+    processor = null;
+    videoTrack?.stop();
+    videoTrack = null;
+    stream?.getTracks().forEach(track => track.stop());
+    stream = null;
+
+    latestFrame?.close();
+    latestFrame = null;
+
+    if (renderer && glForCleanup) {
+      renderer.destroy(glForCleanup);
+      renderer = null;
+    }
+  };
 
   try {
     console.log('CHECKPOINT: main() entered, beginning execution');
@@ -107,32 +142,32 @@ async function main() {
       return;
     }
 
+    glForCleanup = gl;
+
     console.log('Overlay: WebGL2 context created successfully');
 
     // ─── Create the shader renderer ─────────────────────────────────────────
     const api = (window as any).electronAPI;
     
-    let renderer: any = null;
     let currentShaderName = 'default_shader'; // Can be updated via localStorage later
 
     async function initializeRenderer(shaderName: string) {
       console.log(`[ShaderWindow] Initializing shader: ${shaderName}`);
       
-      // 1. Destroy old renderer to free GPU memory (if it exists)
-      if (renderer) {
-        renderer.destroy(gl!);
-      }
-
-      // 2. Load and create new renderer dynamically
+      // Load and create new renderer dynamically.
       const createShaderRenderer = await loadShaderRenderer(shaderName);
-      renderer = createShaderRenderer();
+      const nextRenderer = createShaderRenderer();
       
-      const initialized = renderer.init(gl!, { customCursor });
+      const initialized = nextRenderer.init(gl, { customCursor });
       console.log('CHECKPOINT: ShaderRenderer.init() =', initialized ? 'success' : 'failed');
       if (!initialized) {
+        nextRenderer.destroy(gl);
         console.error('Overlay: Failed to initialize shader renderer');
         return false;
       }
+      const previousRenderer = renderer;
+      renderer = nextRenderer;
+      previousRenderer?.destroy(gl);
       console.log('Overlay: Shader renderer initialized successfully');
 
       // 3. Resize to current canvas size
@@ -141,25 +176,29 @@ async function main() {
       const h = window.innerHeight;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
-      renderer.resize(gl!, canvas.width, canvas.height);
+      renderer.resize(gl, canvas.width, canvas.height);
       
       return true;
     }
 
     // 4. Initial load
-    await initializeRenderer(currentShaderName);
+    if (!await initializeRenderer(currentShaderName)) {
+      stopPipeline();
+      return;
+    }
 
     // 5. Handle window resizing
-    window.addEventListener('resize', () => {
+    resizeHandler = () => {
       if (renderer) {
         const dpr = window.devicePixelRatio || 1;
         const w = window.innerWidth;
         const h = window.innerHeight;
         canvas.width = Math.floor(w * dpr);
         canvas.height = Math.floor(h * dpr);
-        renderer.resize(gl!, canvas.width, canvas.height);
+        renderer.resize(gl, canvas.width, canvas.height);
       }
-    });
+    };
+    window.addEventListener('resize', resizeHandler);
     console.log('CHECKPOINT: resizeCanvas configured');
 
     //--------------------------------------------------------
@@ -172,6 +211,7 @@ async function main() {
       api.notifyShaderWindowReady();
     } else {
       console.error('Overlay: electronAPI not available');
+      stopPipeline();
       return;
     }
     console.log('CHECKPOINT: notifyShaderWindowReady() called');
@@ -284,8 +324,12 @@ async function main() {
       videoTrack = stream.getVideoTracks()[0];
       if (!videoTrack) {
         console.error('Overlay: No video track in stream');
+        stopPipeline();
         return;
       }
+
+      trackEndedHandler = stopPipeline;
+      videoTrack.addEventListener('ended', trackEndedHandler);
 
       processor = new MediaStreamTrackProcessor({ track: videoTrack });
       reader = processor.readable.getReader();
@@ -293,14 +337,12 @@ async function main() {
 
     } catch (e) {
       console.error('❌ getDisplayMedia failed:', e);
+      stopPipeline();
       return;
     }
 
     // Step 3: Frame reader — independently consumes frames from the MediaStream
     // and stores the latest one. Does NOT block the render loop.
-    let latestFrame: VideoFrame | null = null;
-    let rafId = 0;
-
     // 🔥 NEW: Variables to track the actual video frame delivery rate
     let videoFrameCount = 0;
     let videoFrameStartTime = performance.now();
@@ -355,7 +397,7 @@ async function main() {
       if (latestFrame) {
         const time = now / 1000.0;
         // Pass the currentThemeColors to the render function
-        renderer.renderFrame(gl!, latestFrame, time, 1.0, currentThemeColors);
+        renderer.renderFrame(gl, latestFrame, time, 1.0, currentThemeColors);
         
         // Increment counter ONLY when a frame is actually rendered to the screen
         frameCount++; 
@@ -380,19 +422,13 @@ async function main() {
     console.log('CHECKPOINT: frameReader() + renderLoop() started');
 
     // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-      stopped = true;
-      cancelAnimationFrame(rafId);
-      reader?.cancel();
-      if (latestFrame) latestFrame.close();
-      videoTrack?.stop();
-      stream?.getTracks().forEach(t => t.stop());
-      renderer.destroy(gl!);
-    });
+    beforeUnloadHandler = stopPipeline;
+    window.addEventListener('beforeunload', beforeUnloadHandler);
     console.log('CHECKPOINT: beforeunload listener registered');
 
   } catch (e) {
     console.error('FATAL ERROR in main():', e);
+    stopPipeline();
     throw e; // Re-throw so .catch() at call site can log it too
   }
 
