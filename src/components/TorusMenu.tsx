@@ -167,6 +167,7 @@ export default function TorusMenu({
   // 🪗SOUND EFFECTS: Web Audio API for polyphonic playback
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
+  const [audioReady, setAudioReady] = useState(false);
   
   // Initialize AudioContext and load sounds
   useEffect(() => {
@@ -182,11 +183,15 @@ export default function TorusMenu({
         audioBuffersRef.current.set(key, audioBuffer);
       };
       
-      await Promise.all([
-        loadSound(bigWoosh, 'bigWoosh'),
-        loadSound(smallWoosh, 'smallWoosh'),
-        loadSound(thock, 'thock'),
-      ]);
+      try {
+        await Promise.all([
+          loadSound(bigWoosh, 'bigWoosh'),
+          loadSound(smallWoosh, 'smallWoosh'),
+          loadSound(thock, 'thock'),
+        ]);
+      } finally {
+        setAudioReady(true);
+      }
     };
     
     initAudio();
@@ -302,6 +307,7 @@ export default function TorusMenu({
     // advanced play on mount (several wooshes synced with the sectors animation using delay prop)
     // 🪗 Play opening sound for each sector as it pops in
   useEffect(() => {
+    if (!audioReady) return;
     const timeouts: number[] = [];
     
     // Schedule a sound for each sector based on its delay
@@ -317,7 +323,7 @@ export default function TorusMenu({
     return () => {
       timeouts.forEach(id => clearTimeout(id));
     };
-  }, [items.length, delay]);
+  }, [items.length, delay, audioReady]);
 
   // Interactive-only: scroll-to-close and background-click-to-close
   const ref = useRef<HTMLDivElement>(null);
@@ -542,13 +548,13 @@ export default function TorusMenu({
     return {
       transformOrigin: `${cx}px ${cy}px`,
       transformBox: 'view-box',
-      //opacity: 0,
-      //transform: `scale(${initialSize})`,
+      opacity: 0,
+      transform: `scale(${initialSize})`,
     };
   };
 
   useEffect(() => {
-    if (!hasSizeGraph) return;
+    if (!hasSizeGraph || !audioReady) return;
 
     const sortedGraph = sizeGraph!.slice().sort((a, b) => a.time - b.time);
     const initialSize = sortedGraph[0]?.size ?? 0;
@@ -596,7 +602,7 @@ export default function TorusMenu({
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [hasSizeGraph, sizeGraph, segmentHandleValues, duration, delay, cx, cy]);
+  }, [hasSizeGraph, audioReady, sizeGraph, segmentHandleValues, duration, delay, cx, cy]);
 
   const handleSectorClick = (item: MenuItem) => {
     // 🪗 Play click sound (Web Audio API)
