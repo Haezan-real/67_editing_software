@@ -188,28 +188,45 @@ class WindowManager {
 
     const syncBounds = () => {
       if (this.isSyncing) return;
+      if (!this.shaderWindow || !this.appWindow) return;
       if (this.shaderWindow.isDestroyed() || this.appWindow.isDestroyed()) return;
       this.isSyncing = true;
-      this.shaderWindow.setBounds(this.appWindow.getBounds(), false);
-      this.isSyncing = false;
+      try {
+        this.shaderWindow.setBounds(this.appWindow.getBounds(), false);
+      } finally {
+        this.isSyncing = false;
+      }
+    };
+
+    const syncBoundsAfterStateChange = () => {
+      if (!this.shaderWindow || !this.appWindow) return;
+      if (this.shaderWindow.isDestroyed() || this.appWindow.isDestroyed()) return;
+      setImmediate(syncBounds);
     };
 
     this.appWindow.on('move', syncBounds);
     this.appWindow.on('resize', syncBounds);
 
     this.appWindow.on('maximize', () => {
-      if (!this.shaderWindow.isDestroyed()) this.shaderWindow.maximize();
+      if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
+        this.shaderWindow.maximize();
+        syncBoundsAfterStateChange();
+      }
     });
     this.appWindow.on('unmaximize', () => {
-      if (!this.shaderWindow.isDestroyed()) this.shaderWindow.unmaximize();
+      if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
+        this.shaderWindow.unmaximize();
+        syncBoundsAfterStateChange();
+      }
     });
     this.appWindow.on('minimize', () => {
-      if (!this.shaderWindow.isDestroyed()) this.shaderWindow.minimize();
+      if (this.shaderWindow && !this.shaderWindow.isDestroyed()) this.shaderWindow.minimize();
     });
     this.appWindow.on('restore', () => {
-      if (!this.shaderWindow.isDestroyed()) {
+      if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
         this.shaderWindow.restore();
         this.shaderWindow.showInactive();
+        syncBoundsAfterStateChange();
       }
     });
 
