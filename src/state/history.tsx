@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useRef, useState, ReactNode } from 'react';
 
 export type AppSnapshot = any; // opaque snapshot type (App decides structure)
 
@@ -36,63 +36,65 @@ function readIncludeResize(): boolean {
 export function useLocalHistory<T>(scope: string, max = 200): HistoryStack<T> {
   const [undoStack, setUndoStack] = useState<T[]>([]);
   const [redoStack, setRedoStack] = useState<T[]>([]);
+  const undoStackRef = useRef<T[]>([]);
+  const redoStackRef = useRef<T[]>([]);
 
   const push = useCallback((snapshot: T) => {
-    setUndoStack(prev => {
-      logHistoryAction(scope, 'push', {
-        undoDepthBefore: prev.length,
-        undoDepthAfter: Math.min(prev.length + 1, max),
-      });
-      const next = prev.concat([snapshot]);
-      if (next.length > max) return next.slice(next.length - max);
-      return next;
+    const previous = undoStackRef.current;
+    const next = previous.concat([snapshot]);
+    const nextUndoStack = next.length > max ? next.slice(next.length - max) : next;
+    logHistoryAction(scope, 'push', {
+      undoDepthBefore: previous.length,
+      undoDepthAfter: nextUndoStack.length,
     });
+    undoStackRef.current = nextUndoStack;
+    redoStackRef.current = [];
+    setUndoStack(nextUndoStack);
     setRedoStack([]);
   }, [scope, max]);
 
   const undo = useCallback((currentSnapshot: T, restore: (snap: T) => void) => {
-    console.log('[history:undo] Called');
-    setUndoStack(prev => {
-      console.log('[history:undo] Stack length:', prev.length);
-      if (prev.length === 0) {
-        console.log('[history:undo] Stack empty, noop');
-        return prev;
-      }
-      const copy = [...prev];
-      const toRestore = copy.pop()!;
-      console.log('[history:undo] Popped snapshot, calling restore() inside setter');
-      setRedoStack(r => r.concat([currentSnapshot]));
-      restore(toRestore);
-      console.log('[history:undo] restore() done');
-      return copy;
-    });
+    const previous = undoStackRef.current;
+    if (previous.length === 0) return;
+    const nextUndoStack = previous.slice(0, -1);
+    const toRestore = previous[previous.length - 1];
+    const nextRedoStack = redoStackRef.current.concat([currentSnapshot]);
+    undoStackRef.current = nextUndoStack;
+    redoStackRef.current = nextRedoStack;
+    setUndoStack(nextUndoStack);
+    setRedoStack(nextRedoStack);
+    restore(toRestore);
   }, [scope]);
 
   const redo = useCallback((currentSnapshot: T, restore: (snap: T) => void) => {
-    setRedoStack(prev => {
-      if (prev.length === 0) {
-        logHistoryAction(scope, 'redo', { result: 'noop', reason: 'empty redo stack' });
-        return prev;
-      }
-      const copy = [...prev];
-      const toRestore = copy.pop()!;
-      logHistoryAction(scope, 'redo', {
-        redoDepthAfter: copy.length,
-      });
-      setUndoStack(u => u.concat([currentSnapshot]));
-      restore(toRestore);
-      return copy;
+    const previous = redoStackRef.current;
+    if (previous.length === 0) {
+      logHistoryAction(scope, 'redo', { result: 'noop', reason: 'empty redo stack' });
+      return;
+    }
+    const nextRedoStack = previous.slice(0, -1);
+    const toRestore = previous[previous.length - 1];
+    const nextUndoStack = undoStackRef.current.concat([currentSnapshot]);
+    logHistoryAction(scope, 'redo', {
+      redoDepthAfter: nextRedoStack.length,
     });
+    undoStackRef.current = nextUndoStack;
+    redoStackRef.current = nextRedoStack;
+    setUndoStack(nextUndoStack);
+    setRedoStack(nextRedoStack);
+    restore(toRestore);
   }, [scope]);
 
   const clear = useCallback(() => {
     logHistoryAction(scope, 'clear', {
-      undoDepthBefore: undoStack.length,
-      redoDepthBefore: redoStack.length,
+      undoDepthBefore: undoStackRef.current.length,
+      redoDepthBefore: redoStackRef.current.length,
     });
+    undoStackRef.current = [];
+    redoStackRef.current = [];
     setUndoStack([]);
     setRedoStack([]);
-  }, [scope, undoStack.length, redoStack.length]);
+  }, [scope]);
 
   return {
     push,
@@ -111,88 +113,97 @@ const HistoryContext = createContext<HistoryContextType | null>(null);
 export function HistoryProvider({ children }: { children: ReactNode }) {
   const [undoStack, setUndoStack] = useState<AppSnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<AppSnapshot[]>([]);
+  const undoStackRef = useRef<AppSnapshot[]>([]);
+  const redoStackRef = useRef<AppSnapshot[]>([]);
   const MAX = 200;
   const scope = 'app';
 
   const push = (snapshot: AppSnapshot) => {
-    setUndoStack(s => {
-      logHistoryAction(scope, 'push', {
-        undoDepthBefore: s.length,
-        undoDepthAfter: Math.min(s.length + 1, MAX),
-        meta: snapshot?.__meta,
-      });
-      const next = s.concat([snapshot]);
-      if (next.length > MAX) return next.slice(next.length - MAX);
-      return next;
+    const previous = undoStackRef.current;
+    const next = previous.concat([snapshot]);
+    const nextUndoStack = next.length > MAX ? next.slice(next.length - MAX) : next;
+    logHistoryAction(scope, 'push', {
+      undoDepthBefore: previous.length,
+      undoDepthAfter: nextUndoStack.length,
+      meta: snapshot?.__meta,
     });
+    undoStackRef.current = nextUndoStack;
+    redoStackRef.current = [];
+    setUndoStack(nextUndoStack);
     setRedoStack([]);
   };
 
   const undo = (currentSnapshot: AppSnapshot, restore: (snap: AppSnapshot) => void) => {
     const includeResize = readIncludeResize();
-    setUndoStack(prev => {
-      if (prev.length === 0) {
-        logHistoryAction(scope, 'undo', { result: 'noop', reason: 'empty undo stack' });
-        return prev;
+    const previous = undoStackRef.current;
+    if (previous.length === 0) {
+      logHistoryAction(scope, 'undo', { result: 'noop', reason: 'empty undo stack' });
+      return;
+    }
+    const nextUndoStack = [...previous];
+    const movedToRedo: AppSnapshot[] = [];
+    while (nextUndoStack.length > 0) {
+      const last = nextUndoStack[nextUndoStack.length - 1];
+      if (!includeResize && last?.__meta?.type === 'resize') {
+        movedToRedo.push(nextUndoStack.pop()!);
+        continue;
       }
-      const copy = [...prev];
-      const movedToRedo: AppSnapshot[] = [];
-      while (copy.length > 0) {
-        const last = copy[copy.length - 1];
-        if (!includeResize && last?.__meta?.type === 'resize') {
-          movedToRedo.push(copy.pop()!);
-          continue;
-        }
-        const toRestore = copy.pop()!;
-        logHistoryAction(scope, 'undo', {
-          undoDepthAfter: copy.length,
-          skippedResizeSnapshots: movedToRedo.length,
-          restoredMeta: toRestore?.__meta,
-        });
-        setRedoStack(r => r.concat([currentSnapshot]).concat(movedToRedo.reverse()));
-        restore(toRestore);
-        return copy;
-      }
-      logHistoryAction(scope, 'undo', { result: 'noop', reason: 'only resize snapshots remaining' });
-      return prev;
-    });
+      const toRestore = nextUndoStack.pop()!;
+      logHistoryAction(scope, 'undo', {
+        undoDepthAfter: nextUndoStack.length,
+        skippedResizeSnapshots: movedToRedo.length,
+        restoredMeta: toRestore?.__meta,
+      });
+      const nextRedoStack = redoStackRef.current.concat([currentSnapshot], movedToRedo.reverse());
+      undoStackRef.current = nextUndoStack;
+      redoStackRef.current = nextRedoStack;
+      setUndoStack(nextUndoStack);
+      setRedoStack(nextRedoStack);
+      restore(toRestore);
+      return;
+    }
+    logHistoryAction(scope, 'undo', { result: 'noop', reason: 'only resize snapshots remaining' });
   };
 
   const redo = (currentSnapshot: AppSnapshot, restore: (snap: AppSnapshot) => void) => {
     const includeResize = readIncludeResize();
-    setRedoStack(prev => {
-      if (prev.length === 0) {
-        logHistoryAction(scope, 'redo', { result: 'noop', reason: 'empty redo stack' });
-        return prev;
+    const previous = redoStackRef.current;
+    if (previous.length === 0) {
+      logHistoryAction(scope, 'redo', { result: 'noop', reason: 'empty redo stack' });
+      return;
+    }
+    const nextRedoStack = [...previous];
+    const movedToUndo: AppSnapshot[] = [];
+    while (nextRedoStack.length > 0) {
+      const last = nextRedoStack[nextRedoStack.length - 1];
+      if (!includeResize && last?.__meta?.type === 'resize') {
+        movedToUndo.push(nextRedoStack.pop()!);
+        continue;
       }
-      const copy = [...prev];
-      const movedToUndo: AppSnapshot[] = [];
-      while (copy.length > 0) {
-        const last = copy[copy.length - 1];
-        if (!includeResize && last?.__meta?.type === 'resize') {
-          movedToUndo.push(copy.pop()!);
-          continue;
-        }
-        const toRestore = copy.pop()!;
-        logHistoryAction(scope, 'redo', {
-          redoDepthAfter: copy.length,
-          skippedResizeSnapshots: movedToUndo.length,
-          restoredMeta: toRestore?.__meta,
-        });
-        setUndoStack(u => u.concat([currentSnapshot]).concat(movedToUndo.reverse()));
-        restore(toRestore);
-        return copy;
-      }
-      logHistoryAction(scope, 'redo', { result: 'noop', reason: 'only resize snapshots remaining' });
-      return prev;
-    });
+      const toRestore = nextRedoStack.pop()!;
+      logHistoryAction(scope, 'redo', {
+        redoDepthAfter: nextRedoStack.length,
+        skippedResizeSnapshots: movedToUndo.length,
+        restoredMeta: toRestore?.__meta,
+      });
+      const nextUndoStack = undoStackRef.current.concat([currentSnapshot], movedToUndo.reverse());
+      undoStackRef.current = nextUndoStack;
+      redoStackRef.current = nextRedoStack;
+      setUndoStack(nextUndoStack);
+      setRedoStack(nextRedoStack);
+      restore(toRestore);
+      return;
+    }
+    logHistoryAction(scope, 'redo', { result: 'noop', reason: 'only resize snapshots remaining' });
   };
 
   const clear = () => {
     logHistoryAction(scope, 'clear', {
-      undoDepthBefore: undoStack.length,
-      redoDepthBefore: redoStack.length,
+      undoDepthBefore: undoStackRef.current.length,
+      redoDepthBefore: redoStackRef.current.length,
     });
+    undoStackRef.current = [];
+    redoStackRef.current = [];
     setUndoStack([]);
     setRedoStack([]);
   };
