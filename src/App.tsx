@@ -27,6 +27,9 @@ import {
 } from './types';
 import { HistoryProvider, useHistory } from './state/history';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './state/settingsEvents';
+import { useLayoutSettings } from './hooks/useLayoutSettings';
+import { useExportJob } from './hooks/useExportJob';
+import { useTimelineEditor } from './hooks/useTimelineEditor';
 import { modalManager, registerModalPermissions } from './state';
 import Toast from './components/Toast';
 // Toast is a class, not a React component - no need to render it
@@ -118,50 +121,6 @@ function revokeMediaResources(items: Iterable<Pick<MediaItem, 'src'>>): void {
     URL.revokeObjectURL(item.src);
   }
 }
-function waitForVideoFrame(video: HTMLVideoElement, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) return Promise.reject(new DOMException('Export cancelled', 'AbortError'));
-
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const cleanup = () => {
-      video.removeEventListener('error', handleError);
-      signal.removeEventListener('abort', handleAbort);
-    };
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve();
-    };
-    const handleError = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(new Error('Unable to decode a video frame during export.'));
-    };
-    const handleAbort = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(new DOMException('Export cancelled', 'AbortError'));
-    };
-
-    video.addEventListener('error', handleError, { once: true });
-    signal.addEventListener('abort', handleAbort, { once: true });
-
-    const requestVideoFrameCallback = (video as HTMLVideoElement & {
-      requestVideoFrameCallback?: (callback: () => void) => number;
-    }).requestVideoFrameCallback;
-    if (requestVideoFrameCallback) {
-      requestVideoFrameCallback.call(video, finish);
-    } else {
-      video.addEventListener('seeked', finish, { once: true });
-    }
-  });
-}
-
-
-
 function AppContent() {
   const history = useHistory();
   const multipleMenusToast = new Toast('opening multiple <br/> menus is disabled!');
@@ -178,13 +137,11 @@ function AppContent() {
   const [shaderEnabled, setShaderEnabled] = useState(false);
   const isMountedRef = useRef(true);
   const mediaItemsRef = useRef(mediaItems);
-  const exportAbortRef = useRef<AbortController | null>(null);
   mediaItemsRef.current = mediaItems;
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      exportAbortRef.current?.abort();
       revokeMediaResources(mediaItemsRef.current.values());
     };
   }, []);
@@ -228,47 +185,17 @@ function AppContent() {
     return () => cancelAnimationFrame(rafId);
   }, [shaderEnabled]);
 
-  // settings (persisted)
-  const [playheadTop, setPlayheadTop] = useState<number>(() => {
-    try {
-      const v = window.localStorage.getItem('juicecut.settings.playheadTopPercent');
-      if (v) {
-        const n = Number(v);
-        if (!Number.isNaN(n) && n >= 0 && n <= 100) return n;
-      }
-      const legacy = window.localStorage.getItem('juicecut.settings.playheadTop');
-      if (legacy) {
-        const n = Number(legacy);
-        if (!Number.isNaN(n) && n >= 0 && n <= 100) return n;
-      }
-    } catch { /* ignore */ }
-    return 15;
-  });
-  const [includeResizeInUndo, setIncludeResizeInUndo] = useState<boolean>(() => {
-    try { const v = window.localStorage.getItem('juicecut.settings.includeResizeInUndo'); return v === null ? true : v === 'true'; } catch { return true; }
-  });
-
-  // layout (persisted) - stored as percentages of viewport
-  const [leftWidthPct, setLeftWidthPct] = useState<number>(() => {
-    try { const v = window.localStorage.getItem('juicecut.layout.leftWidthPct'); return v ? Number(v) : 20; } catch { return 20; }
-  });
-  const [leftCollapsed, setLeftCollapsed] = useState<boolean>(() => {
-    try { const v = window.localStorage.getItem('juicecut.layout.leftCollapsed'); return v === 'true'; } catch { return false; }
-  });
-  useEffect(() => { try { window.localStorage.setItem('juicecut.layout.leftCollapsed', leftCollapsed ? 'true' : 'false'); } catch {} }, [leftCollapsed]);
-  const [savedTimelineHeightPct, setSavedTimelineHeightPct] = useState<number | null>(null);
-  const [timelineHeightPct, setTimelineHeightPct] = useState<number>(() => {
-    try { const v = window.localStorage.getItem('juicecut.layout.timelineHeightPct'); return v ? Number(v) : 35; } catch { return 35; }
-  });
-  
-  // Get GUI scale
-  const getGuiScale = () => {
-    try { const v = window.localStorage.getItem('juicecut.settings.guiScale'); return v ? Number(v) / 100 : 1; } catch { return 1; }
-  };
-  
-  // guiScale is still read to trigger re-renders when scale changes
-  const guiScale = getGuiScale();
-  void guiScale; // used to force re-render dependency
+  const {
+    playheadTop,
+    setPlayheadTop,
+    includeResizeInUndo,
+    setIncludeResizeInUndo,
+    leftWidthPct,
+    setLeftWidthPct,
+    leftCollapsed,
+    timelineHeightPct,
+    setTimelineHeightPct,
+  } = useLayoutSettings();
   const [showStyle, setShowStyle] = useState(false);
   const [stylePage, setStylePage] = useState<string | null>(null);
   const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState(() => 
@@ -479,9 +406,6 @@ function AppContent() {
   const blockBackground = !allowEditsWhenMenuOpen && hasModalOpen;
 
   const [showExport, setShowExport] = useState(false);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.layout.leftWidthPct', String(leftWidthPct)); } catch {} }, [leftWidthPct]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.layout.timelineHeightPct', String(timelineHeightPct)); } catch {} }, [timelineHeightPct]);
-
   const totalFrames = clips.reduce((max, c) => Math.max(max, c.endFrame), 0);
 
   const snapshot = useCallback(() => ({
@@ -515,26 +439,10 @@ function AppContent() {
     }
   }, [setClips, setMediaItems, setSelectedIds, setPlayhead, playheadTop, includeResizeInUndo, leftWidthPct, timelineHeightPct]);
 
-  // layout (persisted)
-  useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playheadTopPercent', String(playheadTop)); } catch {}
-  }, [playheadTop]);
-
-  // GUI scale state - needed to trigger re-render when scale changes
-  const [guiScaleState, setGuiScaleState] = useState<number>(() => {
-    try { const v = window.localStorage.getItem('juicecut.settings.guiScale'); return v ? Number(v) / 100 : 1; } catch { return 1; }
-  });
-
   // Listen for settings changes from the Settings modal
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.key === 'playheadTopPercent' && typeof detail.value === 'number') {
-        setPlayheadTop(detail.value);
-      }
-      if (detail?.key === 'guiScale' && typeof detail.value === 'number') {
-        setGuiScaleState(detail.value / 100);
-      }
       if (detail?.key === 'elevatedPanelDarkenAmount' && typeof detail.value === 'number') {
         const pct = detail.value;
         let overlayColor: string;
@@ -717,203 +625,13 @@ function AppContent() {
     setClips(prev => prev.filter(c => c.mediaId !== id));
   }, [mediaItems, history, snapshot]);
 
-  const handleDropMedia = useCallback((mediaId: string, track: number, startFrame: number) => {
-    history.push(snapshot());
-    const media = mediaItems.get(mediaId);
-    if (!media) return;
-    const trackObj = TRACKS[track];
-    if (!trackObj) return;
-    if (trackObj.type === 'video' && media.type === 'audio') return;
-    if (trackObj.type === 'audio' && (media.type === 'video' || media.type === 'image')) return;
-    const endFrame = startFrame + media.duration;
-    const newClip: TimelineClip = { id: generateId(), mediaId, track, startFrame, endFrame, srcIn: 0, srcOut: media.duration, fades: { in: 0, out: 0 }, name: media.name, type: media.type };
-    setClips(prev => [...prev, newClip]);
-  }, [mediaItems]);
+  const {
+    handleDropMedia, handleSelectClip, handleNudge, handleSplitClip,
+    handleTrimLatter, handleTrimFormer, handleJoin, handleFadeChange,
+    handleStepEdge, handleRollApply,
+  } = useTimelineEditor({ mediaItems, setClips, setSelectedIds, history, snapshot });
 
-  const handleSelectClip = useCallback((id: string, multi: boolean) => {
-    setSelectedIds(prev => { if (multi) return prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]; return prev.includes(id) && prev.length === 1 ? prev : [id]; });
-  }, []);
-
-  const handleNudge = useCallback((ids: string[], delta: number) => {
-    history.push(snapshot());
-    setClips(prev => {
-      const movers = new Set(ids);
-      return prev.map(clip => {
-        if (!movers.has(clip.id)) return clip;
-        const newStart = Math.max(0, clip.startFrame + delta);
-        const len = clip.endFrame - clip.startFrame;
-        const wouldOverlap = prev.some(other => !movers.has(other.id) && other.track === clip.track && newStart < other.endFrame && newStart + len > other.startFrame);
-        if (wouldOverlap) return clip;
-        return { ...clip, startFrame: newStart, endFrame: newStart + len };
-      });
-    });
-  }, [history, snapshot]);
-
-  const handleSplitClip = useCallback((clipId: string, frame: number) => {
-    history.push(snapshot());
-    setClips(prev => {
-      const clip = prev.find(c => c.id === clipId);
-      if (!clip || frame <= clip.startFrame || frame >= clip.endFrame) return prev;
-      const relFrame = frame - clip.startFrame;
-      const part1: TimelineClip = { ...clip, endFrame: frame, srcOut: clip.srcIn + relFrame, fades: { ...clip.fades, out: 0 } };
-      const part2: TimelineClip = { ...clip, id: generateId(), startFrame: frame, srcIn: clip.srcIn + relFrame, fades: { ...clip.fades, in: 0 } };
-      return prev.map(c => c.id === clipId ? part1 : c).concat(part2);
-    });
-  }, [history, snapshot]);
-
-  const handleTrimLatter = useCallback((clipId: string, frame: number, ripple: boolean) => {
-    history.push(snapshot());
-    setClips(prev => {
-      const clip = prev.find(c => c.id === clipId);
-      if (!clip || frame <= clip.startFrame) return prev;
-      const newEnd = frame;
-      const gap = clip.endFrame - newEnd;
-      return prev.map(c => {
-        if (c.id === clipId) return { ...c, endFrame: newEnd, srcOut: c.srcIn + (newEnd - c.startFrame) };
-        if (ripple && c.track === clip.track && c.startFrame >= clip.endFrame) return { ...c, startFrame: c.startFrame - gap, endFrame: c.endFrame - gap };
-        return c;
-      });
-    });
-  }, [history, snapshot]);
-
-  const handleTrimFormer = useCallback((clipId: string, frame: number, ripple: boolean) => {
-    history.push(snapshot());
-    setClips(prev => {
-      const clip = prev.find(c => c.id === clipId);
-      if (!clip || frame >= clip.endFrame) return prev;
-      const gap = frame - clip.startFrame;
-      return prev.map(c => {
-        if (c.id === clipId) return { ...c, startFrame: frame, srcIn: c.srcIn + gap };
-        if (ripple && c.track === clip.track && c.startFrame < clip.startFrame) return { ...c, startFrame: Math.max(0, c.startFrame - gap), endFrame: Math.max(0, c.endFrame - gap) };
-        return c;
-      });
-    });
-  }, [history, snapshot]);
-
-  const handleJoin = useCallback((clipAId: string, clipBId: string) => {
-    history.push(snapshot());
-    setClips(prev => {
-      const a = prev.find(c => c.id === clipAId);
-      const b = prev.find(c => c.id === clipBId);
-      if (!a || !b || a.mediaId !== b.mediaId) return prev;
-      const merged: TimelineClip = { ...a, endFrame: b.endFrame, srcOut: b.srcOut, fades: { in: a.fades.in, out: b.fades.out } };
-      return prev.filter(c => c.id !== clipAId && c.id !== clipBId).concat(merged);
-    });
-  }, [history, snapshot]);
-
-  const handleFadeChange = useCallback((clipId: string, side: 'in' | 'out', frames: number) => {
-    history.push(snapshot());
-    setClips(prev => prev.map(c => { if (c.id !== clipId) return c; const maxFade = Math.floor((c.endFrame - c.startFrame) / 2); return { ...c, fades: { ...c.fades, [side]: Math.min(Math.max(0, frames), maxFade) } }; }));
-  }, [history, snapshot]);
-
-  const handleStepEdge = useCallback((clipId: string | null, cutBetween: [string, string] | null, direction: number, ripple: boolean) => {
-    history.push(snapshot());
-    setClips(prev => {
-      if (cutBetween) {
-        const [aId, bId] = cutBetween;
-        return prev.map(c => {
-          if (c.id === aId) return { ...c, endFrame: c.endFrame + direction, srcOut: c.srcOut + direction };
-          if (!ripple && c.id === bId) return { ...c, startFrame: c.startFrame + direction, srcIn: c.srcIn + direction };
-          if (ripple && c.id !== aId) { const bClip = prev.find(x => x.id === bId); if (bClip && c.track === bClip.track && c.startFrame >= bClip.startFrame) return { ...c, startFrame: c.startFrame + direction, endFrame: c.endFrame + direction }; }
-          return c;
-        });
-      }
-      if (clipId) return prev.map(c => { if (c.id !== clipId) return c; return { ...c, endFrame: c.endFrame + direction, srcOut: c.srcOut + direction }; });
-      return prev;
-    });
-  }, [history, snapshot]);
-
-  const handleRollApply = useCallback((clipId: string, newSrcIn: number, newSrcOut: number) => {
-    history.push(snapshot());
-    setClips(prev => prev.map(c => c.id === clipId ? { ...c, srcIn: newSrcIn, srcOut: newSrcOut } : c));
-  }, [history, snapshot]);
-
-  const handleExport = useCallback(async () => {
-    exportAbortRef.current?.abort();
-    const abortController = new AbortController();
-    exportAbortRef.current = abortController;
-    const { signal } = abortController;
-    const videoClips = clips.filter(c => c.type === 'video' && c.track === 0).sort((a, b) => a.startFrame - b.startFrame);
-    if (videoClips.length === 0) {
-      exportAbortRef.current = null;
-      alert('No video clips on track V1 to export.');
-      return;
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = 854; canvas.height = 480;
-    const ctx = canvas.getContext('2d')!;
-    const stream = canvas.captureStream(FPS);
-    let recorder: MediaRecorder;
-    try { recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' }); } catch { recorder = new MediaRecorder(stream); }
-    const chunks: BlobPart[] = [];
-    let exportCompleted = false;
-    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-    recorder.onstop = () => {
-      stream.getTracks().forEach(track => track.stop());
-      if (!exportCompleted) return;
-      const blob = new Blob(chunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'export.webm';
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    try {
-      recorder.start();
-      for (let frame = 0; frame <= totalFrames; frame++) {
-        if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError');
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, 854, 480);
-        const videoClip = videoClips.find(c => frame >= c.startFrame && frame < c.endFrame);
-        if (videoClip) {
-          const media = mediaItems.get(videoClip.mediaId);
-          const videoEl = media ? document.getElementById(`vid-${media.id}`) as HTMLVideoElement | null : null;
-          if (videoEl) {
-            if (videoEl.readyState < 2) {
-              await new Promise<void>((resolve, reject) => {
-                const handleLoadedData = () => { cleanup(); resolve(); };
-                const handleError = () => { cleanup(); reject(new Error('Unable to load video for export.')); };
-                const cleanup = () => {
-                  videoEl.removeEventListener('loadeddata', handleLoadedData);
-                  videoEl.removeEventListener('error', handleError);
-                };
-                videoEl.addEventListener('loadeddata', handleLoadedData, { once: true });
-                videoEl.addEventListener('error', handleError, { once: true });
-                signal.addEventListener('abort', () => { cleanup(); reject(new DOMException('Export cancelled', 'AbortError')); }, { once: true });
-              });
-            }
-            videoEl.currentTime = (frame - videoClip.startFrame + videoClip.srcIn) / FPS;
-            await waitForVideoFrame(videoEl, signal);
-            let alpha = 1;
-            const len = videoClip.endFrame - videoClip.startFrame;
-            const rel = frame - videoClip.startFrame;
-            if (rel < videoClip.fades.in) alpha = rel / videoClip.fades.in;
-            if (rel > len - videoClip.fades.out) alpha = (len - rel) / videoClip.fades.out;
-            ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
-            const ar = videoEl.videoWidth / videoEl.videoHeight || 16 / 9;
-            const cAr = 854 / 480;
-            let w = 854, h = 480, x = 0, y = 0;
-            if (ar > cAr) { h = 854 / ar; y = (480 - h) / 2; } else { w = 480 * ar; x = (854 - w) / 2; }
-            ctx.drawImage(videoEl, x, y, w, h);
-            ctx.globalAlpha = 1;
-          }
-        }
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-      }
-      exportCompleted = true;
-    } catch (error) {
-      if (!(error instanceof DOMException && error.name === 'AbortError')) {
-        console.error('Export failed:', error);
-        alert('Export failed. Check the console for details.');
-      }
-    } finally {
-      if (recorder.state !== 'inactive') recorder.stop();
-      if (recorder.state === 'inactive') stream.getTracks().forEach(track => track.stop());
-      if (exportAbortRef.current === abortController) exportAbortRef.current = null;
-    }
-  }, [clips, mediaItems, totalFrames]);
+  const { exportVideo: handleExport } = useExportJob({ clips, mediaItems, totalFrames });
 
   const rollClip = rollClipId ? clips.find(c => c.id === rollClipId) ?? null : null;
   const rollMedia = rollClip ? mediaItems.get(rollClip.mediaId) ?? null : null;
