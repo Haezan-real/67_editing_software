@@ -161,36 +161,36 @@ export default function PlayneedleEditorModal({ onClose, onBack }: PlayneedleEdi
   const [pnWidth, setPnWidth] = useState<number>(getSavedPnWidth);
 
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_t', String(pnT)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_t', value: pnT } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_t', String(pnT)); dispatchSettingsChanged('playneedle_t', pnT); } catch {}
   }, [pnT]);
 
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_j', String(pnJ)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_j', value: pnJ } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_j', String(pnJ)); dispatchSettingsChanged('playneedle_j', pnJ); } catch {}
   }, [pnJ]);
 
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_k', String(pnK)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_k', value: pnK } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_k', String(pnK)); dispatchSettingsChanged('playneedle_k', pnK); } catch {}
   }, [pnK]);
 
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_s', String(pnS)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_s', value: pnS } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_s', String(pnS)); dispatchSettingsChanged('playneedle_s', pnS); } catch {}
   }, [pnS]);
 
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_v_o', String(pnVo)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_v_o', value: pnVo } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_v_o', String(pnVo)); dispatchSettingsChanged('playneedle_v_o', pnVo); } catch {}
   }, [pnVo]);
 
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_h_b', String(pnHb)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_h_b', value: pnHb } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_h_b', String(pnHb)); dispatchSettingsChanged('playneedle_h_b', pnHb); } catch {}
   }, [pnHb]);
 
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_h_r', String(pnHr)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_h_r', value: pnHr } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_h_r', String(pnHr)); dispatchSettingsChanged('playneedle_h_r', pnHr); } catch {}
   }, [pnHr]);
 
   // Persist width changes
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_width', String(pnWidth)); window.dispatchEvent(new CustomEvent('juicecut-settings-changed', { detail: { key: 'playneedle_width', value: pnWidth } })); } catch {}
+    try { window.localStorage.setItem('juicecut.settings.playneedle_width', String(pnWidth)); dispatchSettingsChanged('playneedle_width', pnWidth); } catch {}
   }, [pnWidth]);
 
   const params = useMemo(() => ({

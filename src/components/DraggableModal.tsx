@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
+import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
 
 interface DraggableModalProps {
   /** The title text shown in the header */
@@ -192,13 +193,13 @@ export default function DraggableModal({
   // Listen for settings changes to update allowEditsWhenMenuOpen reactively
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const detail = getSettingsChangedDetail(e);
       if (detail?.key === 'allowEditsWhenMenuOpen') {
         setAllowEditsWhenMenuOpen(detail.value ?? true);
       }
     };
-    window.addEventListener('juicecut.settings-changed', handler);
-    return () => window.removeEventListener('juicecut.settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
 
   useEffect(() => {

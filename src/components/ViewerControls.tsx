@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react';
 import type { TimelineClip, MediaItem } from '../types';
 import { formatTimecode } from '../types';
+import { SETTINGS_CHANGED_EVENT } from '../state/settingsEvents';
 
 interface Props {
   clips: TimelineClip[];
@@ -29,16 +30,16 @@ export default function ViewerControls({
     const handler = () => {
       try { setControlsType(window.localStorage.getItem('juicecut.settings.viewerControlsType') || 'compact'); } catch {}
     };
-    window.addEventListener('juicecut-settings-changed', handler);
-    return () => window.removeEventListener('juicecut-settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
 
   useEffect(() => {
     const handler = () => {
       try { setTimecodePanel(window.localStorage.getItem('juicecut.settings.timecodePanel') || 'both'); } catch {}
     };
-    window.addEventListener('juicecut-settings-changed', handler);
-    return () => window.removeEventListener('juicecut-settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
 
   const progress = totalFrames > 0 ? (playhead / totalFrames) * 100 : 0;

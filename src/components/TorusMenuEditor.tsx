@@ -10,6 +10,7 @@ import TorusMenu from './TorusMenu';
 import { Slider } from './Adjustables';
 import { RotateCcw, Plus } from 'lucide-react';
 import { isShortcutMatch, getShortcutKeys as scGetKeys, updateShortcuts as scUpdate, resetDefaultShortcuts as scReset, type ShortcutAction, SHORTCUT_LABELS } from './shortcuts';
+import { SETTINGS_CHANGED_EVENT } from '../state/settingsEvents';
 
 // Torus Menu Editor modal dimensions
 const EDITOR_WIDTH = 620; //default 620px, can be wider if needed
@@ -181,8 +182,8 @@ export default function TorusMenuEditorModal({ onClose, onBack }: TorusMenuEdito
     const handler = () => {
       setCloseTorusKeys(scGetKeys('toggleTorusMenu'));
     };
-    window.addEventListener('juicecut-settings-changed', handler);
-    return () => window.removeEventListener('juicecut-settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
 
   const sortedSizeGraph = useMemo(() => sizeGraph.slice().sort((a, b) => a.time - b.time), [sizeGraph]);

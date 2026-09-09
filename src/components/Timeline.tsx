@@ -8,6 +8,7 @@ import Waveform from './Waveform';
 import ThumbnailRoll from './ThumbnailRoll';
 import { isWheelShortcutMatch } from './shortcuts';
 import FormulaPlayneedle from './FormulaPlayneedle';
+import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
 
 interface Props {
   clips: TimelineClip[];
@@ -138,7 +139,7 @@ export default function Timeline({
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const detail = getSettingsChangedDetail(e);
       if (detail?.key === 'timecodePanel' && typeof detail.value === 'string') {
         setTimecodePanel(detail.value);
       }
@@ -151,8 +152,8 @@ export default function Timeline({
         setPnWidth(getSavedPnWidth());
       }
     };
-    window.addEventListener('juicecut-settings-changed', handler);
-    return () => window.removeEventListener('juicecut-settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
   const getGuiScale = () => {
     try { const v = window.localStorage.getItem('juicecut.settings.guiScale'); return v ? Number(v) / 100 : 1; } catch { return 1; }
@@ -204,12 +205,12 @@ export default function Timeline({
         setTimeout(updatePlayheadHeight, 50);
       }
     };
-    window.addEventListener('juicecut-settings-changed', handleGuiScaleChange);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handleGuiScaleChange);
 
     return () => {
       resizeObserver?.disconnect();
       window.removeEventListener('resize', updatePlayheadHeight);
-      window.removeEventListener('juicecut-settings-changed', handleGuiScaleChange);
+      window.removeEventListener(SETTINGS_CHANGED_EVENT, handleGuiScaleChange);
     };
   }, []);
 
@@ -622,8 +623,8 @@ export default function Timeline({
       if (Math.abs(zoomTargetRef.current - zoom) > 0.001 && zoomRafRef.current === null) {
       }
     };
-    window.addEventListener('juicecut-settings-changed', handleSettingsChange);
-    return () => window.removeEventListener('juicecut-settings-changed', handleSettingsChange);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handleSettingsChange);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handleSettingsChange);
   }, [zoom]);
 
   const handleTrackDrop = (e: React.DragEvent, trackIdx: number) => {

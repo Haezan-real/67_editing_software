@@ -26,6 +26,7 @@ import {
   FPS, generateId, secondsToFrames
 } from './types';
 import { HistoryProvider, useHistory } from './state/history';
+import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './state/settingsEvents';
 import { modalManager, registerModalPermissions } from './state';
 import Toast from './components/Toast';
 // Toast is a class, not a React component - no need to render it
@@ -246,19 +247,19 @@ function AppContent() {
   // Listen for settings changes to update allowEditsWhenMenuOpen reactively
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const detail = getSettingsChangedDetail(e);
       if (detail?.key === 'allowEditsWhenMenuOpen') {
         setAllowEditsWhenMenuOpen(detail.value ?? true);
       }
     };
-    window.addEventListener('juicecut.settings-changed', handler);
-    return () => window.removeEventListener('juicecut.settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
 
   // Listen for shader changes from the shader selector
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const detail = getSettingsChangedDetail(e);
       if (detail?.shaderName) {
         const api = (window as any).electronAPI;
         if (api?.send) {
@@ -384,11 +385,11 @@ function AppContent() {
       // Trigger update on any style change
       setTimeout(sendThemeColorsToShader, 50);
     };
-    window.addEventListener('juicecut.settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
     window.addEventListener('juicecut.theme-changed', handler);
 
     return () => {
-      window.removeEventListener('juicecut.settings-changed', handler);
+      window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
       window.removeEventListener('juicecut.theme-changed', handler);
     };
   }, []);
@@ -517,8 +518,8 @@ function AppContent() {
         setHasModalOpen(prev => prev); // trigger re-render
       }
     };
-    window.addEventListener('juicecut.settings-changed', handler);
-    return () => window.removeEventListener('juicecut.settings-changed', handler);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
   useEffect(() => {
     try { window.localStorage.setItem('juicecut.settings.includeResizeInUndo', includeResizeInUndo ? 'true' : 'false'); } catch {}

@@ -9,6 +9,7 @@ import { OpenTorusMenuEditor } from './TorusMenuEditor';
 import { OpenPlayneedleEditor } from './PlayneedleEditor';
 import { modalManager } from '../state/modalManager';
 import { showToast } from './Toast';
+import { dispatchSettingsChanged } from '../state/settingsEvents';
 
 // Stretch factors for the playneedle icon
 const PLAYNEEDLE_ICON_HORIZONTAL_STRETCH_FACTOR = 0.4; // default 0.4
@@ -191,7 +192,7 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
       if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
       (window as any).juicecut.settings.allowMultipleMenus = allowMultipleMenus;
       modalManager.updateSettings('allowMultipleMenus', allowMultipleMenus);
-      window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "allowMultipleMenus", value: allowMultipleMenus } }));
+      dispatchSettingsChanged('allowMultipleMenus', allowMultipleMenus);
     } catch {}
   }, [allowMultipleMenus]);
 
@@ -210,7 +211,7 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
       if (!(window as any).juicecut) (window as any).juicecut = {};
       if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
       (window as any).juicecut.settings.allowEditsWhenMenuOpen = allowEditsWhenMenuOpen;
-      window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "allowEditsWhenMenuOpen", value: allowEditsWhenMenuOpen } }));
+      dispatchSettingsChanged('allowEditsWhenMenuOpen', allowEditsWhenMenuOpen);
     } catch {}
   }, [allowEditsWhenMenuOpen]);
 
@@ -256,26 +257,26 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
   const scrollAmountToSlider = (value: number) => { if (value <= 1) return 0; if (value >= 400) return 1000; return Math.round(1000 * Math.pow((value - 1) / 399, 1 / SCROLL_AMOUNT_POWER)); };
   const sliderToScrollAmount = (sv: number) => { return Math.round(1 + 399 * Math.pow(Math.max(0, Math.min(1, sv / 1000)), SCROLL_AMOUNT_POWER)); };
 
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.guiScale", String(guiScale)); document.documentElement.style.setProperty('--gui-scale', `${guiScale / 100}`); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "guiScale", value: guiScale } })); } catch {} }, [guiScale]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.guiScale", String(guiScale)); document.documentElement.style.setProperty('--gui-scale', `${guiScale / 100}`); dispatchSettingsChanged('guiScale', guiScale); } catch {} }, [guiScale]);
   useEffect(() => { try { window.localStorage.setItem("juicecut.settings.includeResizeInUndo", includeResizeInUndo ? "true" : "false"); } catch {} }, [includeResizeInUndo]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.zoomEpicenter', zoomEpicenter); window.dispatchEvent(new CustomEvent('juicecut.settings-changed', { detail: { key: 'zoomEpicenter', value: zoomEpicenter } })); } catch {} }, [zoomEpicenter]);
+  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.zoomEpicenter', zoomEpicenter); dispatchSettingsChanged('zoomEpicenter', zoomEpicenter); } catch {} }, [zoomEpicenter]);
   useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollSmooth", String(scrollSmooth)); } catch {} }, [scrollSmooth]);
   useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollAmount", String(scrollAmount)); } catch {} }, [scrollAmount]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollZoomAmount", String(scrollZoomAmount)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "scrollZoomAmount", value: scrollZoomAmount } })); } catch {} }, [scrollZoomAmount]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollZoomSmoothness", String(scrollZoomSmoothness)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "scrollZoomSmoothness", value: scrollZoomSmoothness } })); } catch {} }, [scrollZoomSmoothness]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.viewerControlsType', viewerControlsType); window.dispatchEvent(new CustomEvent('juicecut.settings-changed', { detail: { key: 'viewerControlsType', value: viewerControlsType } })); } catch {} }, [viewerControlsType]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.timecodePanel', timecodePanel); window.dispatchEvent(new CustomEvent('juicecut.settings-changed', { detail: { key: 'timecodePanel', value: timecodePanel } })); } catch {} }, [timecodePanel]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.torusScrollingDisabled', torusScrollingDisabled); window.dispatchEvent(new CustomEvent('juicecut.settings-changed', { detail: { key: 'torusScrollingDisabled', value: torusScrollingDisabled } })); } catch {} }, [torusScrollingDisabled]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.elevatedPanelDarkenAmount", String(elevatedPanelDarken)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "elevatedPanelDarkenAmount", value: elevatedPanelDarken } })); } catch {} }, [elevatedPanelDarken]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.elevatedPanelBlurAmount", String(elevatedPanelBlur)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "elevatedPanelBlurAmount", value: elevatedPanelBlur } })); } catch {} }, [elevatedPanelBlur]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_t", String(pnT)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedle_t", value: pnT } })); } catch {} }, [pnT]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_j", String(pnJ)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedle_j", value: pnJ } })); } catch {} }, [pnJ]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_k", String(pnK)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedle_k", value: pnK } })); } catch {} }, [pnK]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_s", String(pnS)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedle_s", value: pnS } })); } catch {} }, [pnS]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_v_o", String(pnVo)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedle_v_o", value: pnVo } })); } catch {} }, [pnVo]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_h_b", String(pnHb)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedle_h_b", value: pnHb } })); } catch {} }, [pnHb]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_h_r", String(pnHr)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedle_h_r", value: pnHr } })); } catch {} }, [pnHr]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedleIconHorizontalStretch", String(playneedleIconHorizontalStretch)); window.dispatchEvent(new CustomEvent("juicecut.settings-changed", { detail: { key: "playneedleIconHorizontalStretch", value: playneedleIconHorizontalStretch } })); } catch {} }, [playneedleIconHorizontalStretch]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollZoomAmount", String(scrollZoomAmount)); dispatchSettingsChanged('scrollZoomAmount', scrollZoomAmount); } catch {} }, [scrollZoomAmount]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollZoomSmoothness", String(scrollZoomSmoothness)); dispatchSettingsChanged('scrollZoomSmoothness', scrollZoomSmoothness); } catch {} }, [scrollZoomSmoothness]);
+  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.viewerControlsType', viewerControlsType); dispatchSettingsChanged('viewerControlsType', viewerControlsType); } catch {} }, [viewerControlsType]);
+  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.timecodePanel', timecodePanel); dispatchSettingsChanged('timecodePanel', timecodePanel); } catch {} }, [timecodePanel]);
+  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.torusScrollingDisabled', torusScrollingDisabled); dispatchSettingsChanged('torusScrollingDisabled', torusScrollingDisabled); } catch {} }, [torusScrollingDisabled]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.elevatedPanelDarkenAmount", String(elevatedPanelDarken)); dispatchSettingsChanged('elevatedPanelDarkenAmount', elevatedPanelDarken); } catch {} }, [elevatedPanelDarken]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.elevatedPanelBlurAmount", String(elevatedPanelBlur)); dispatchSettingsChanged('elevatedPanelBlurAmount', elevatedPanelBlur); } catch {} }, [elevatedPanelBlur]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_t", String(pnT)); dispatchSettingsChanged('playneedle_t', pnT); } catch {} }, [pnT]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_j", String(pnJ)); dispatchSettingsChanged('playneedle_j', pnJ); } catch {} }, [pnJ]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_k", String(pnK)); dispatchSettingsChanged('playneedle_k', pnK); } catch {} }, [pnK]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_s", String(pnS)); dispatchSettingsChanged('playneedle_s', pnS); } catch {} }, [pnS]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_v_o", String(pnVo)); dispatchSettingsChanged('playneedle_v_o', pnVo); } catch {} }, [pnVo]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_h_b", String(pnHb)); dispatchSettingsChanged('playneedle_h_b', pnHb); } catch {} }, [pnHb]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_h_r", String(pnHr)); dispatchSettingsChanged('playneedle_h_r', pnHr); } catch {} }, [pnHr]);
+  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedleIconHorizontalStretch", String(playneedleIconHorizontalStretch)); dispatchSettingsChanged('playneedleIconHorizontalStretch', playneedleIconHorizontalStretch); } catch {} }, [playneedleIconHorizontalStretch]);
 
   useEffect(() => {
     try {

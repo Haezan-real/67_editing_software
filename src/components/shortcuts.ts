@@ -1,4 +1,6 @@
-﻿/**
+﻿import { SETTINGS_CHANGED_EVENT, dispatchSettingsChanged, getSettingsChangedDetail } from '../state/settingsEvents';
+
+/**
  * Centralized keyboard shortcut management.
  */
 export type ShortcutAction = "undo" | "redo" | "timelineZoomToggle" | "exitModal" | "toggleTorusMenu";
@@ -76,7 +78,7 @@ export function isWheelShortcutMatch(action: ShortcutAction, e: WheelEvent): boo
 export function updateShortcuts(next: Record<ShortcutAction, string[][]>) {
   cache = next;
   persist(next);
-  window.dispatchEvent(new CustomEvent("juicecut-settings-changed", { detail: { key: "keyboardShortcuts", value: next } }));
+  dispatchSettingsChanged('keyboardShortcuts', next);
 }
 
 export function resetDefaultShortcuts(action: ShortcutAction) {
@@ -108,8 +110,11 @@ export function formatShortcutLabel(action: ShortcutAction): string {
 }
 
 if (typeof window !== "undefined") {
-  window.addEventListener("juicecut-settings-changed", ((e: CustomEvent) => {
-    if (e.detail?.key === "keyboardShortcuts") cache = e.detail.value;
+  window.addEventListener(SETTINGS_CHANGED_EVENT, ((e: Event) => {
+    const detail = getSettingsChangedDetail(e);
+    if (detail?.key === 'keyboardShortcuts' && typeof detail.value === 'object' && detail.value !== null) {
+      cache = detail.value as Record<ShortcutAction, string[][]>;
+    }
   }) as EventListener);
 }
 

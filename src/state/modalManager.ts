@@ -1,3 +1,5 @@
+import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './settingsEvents';
+
 export type ModalType = 'settings' | 'styles' | 'export' | 'torusMenuEditor' | 'playneedleEditor' | 'colorPicker' | 'rollDialog' | 'shaderSelector';
 
 export interface ModalPermission {
@@ -38,9 +40,11 @@ class ModalManager {
     } catch {}
     
     // Keep in sync with the rest of the app via the global settings-changed event.
-    window.addEventListener('juicecut.settings-changed', ((e: CustomEvent) => {
-      const { key, value } = e.detail;
-      if (key in this.state.settings) {
+    window.addEventListener(SETTINGS_CHANGED_EVENT, ((e: Event) => {
+      const detail = getSettingsChangedDetail(e);
+      if (!detail) return;
+      const { key, value } = detail;
+      if (key in this.state.settings && typeof value === 'boolean') {
         this.state.settings[key as keyof ModalManagerState['settings']] = value;
         this.notifyListeners();
       }
