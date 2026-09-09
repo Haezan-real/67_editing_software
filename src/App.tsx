@@ -51,10 +51,25 @@ function loadMediaDuration(file: File, type: MediaItem['type']): Promise<number>
     const el = type === 'video'
       ? document.createElement('video')
       : document.createElement('audio');
+    const tempUrl = URL.createObjectURL(file);
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      el.removeAttribute('src');
+      el.load();
+      URL.revokeObjectURL(tempUrl);
+    };
     el.preload = 'metadata';
-    el.src = URL.createObjectURL(file);
-    el.onloadedmetadata = () => resolve(secondsToFrames(el.duration));
-    el.onerror = () => resolve(5 * FPS);
+    el.src = tempUrl;
+    el.onloadedmetadata = () => {
+      resolve(secondsToFrames(el.duration));
+      cleanup();
+    };
+    el.onerror = () => {
+      resolve(5 * FPS);
+      cleanup();
+    };
   });
 }
 
@@ -71,7 +86,16 @@ function generateThumbnail(file: File, type: MediaItem['type']): Promise<string 
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.muted = true;
-    video.src = URL.createObjectURL(file);
+    const tempUrl = URL.createObjectURL(file);
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      video.removeAttribute('src');
+      video.load();
+      URL.revokeObjectURL(tempUrl);
+    };
+    video.src = tempUrl;
     video.onloadeddata = () => { video.currentTime = 0.5; };
     video.onseeked = () => {
       const canvas = document.createElement('canvas');
@@ -79,9 +103,19 @@ function generateThumbnail(file: File, type: MediaItem['type']): Promise<string 
       const ctx = canvas.getContext('2d');
       if (ctx) ctx.drawImage(video, 0, 0, 120, 68);
       resolve(canvas.toDataURL('image/jpeg', 0.6));
+      cleanup();
     };
-    video.onerror = () => resolve(undefined);
+    video.onerror = () => {
+      resolve(undefined);
+      cleanup();
+    };
   });
+}
+
+function revokeMediaResources(items: Iterable<Pick<MediaItem, 'src'>>): void {
+  for (const item of items) {
+    URL.revokeObjectURL(item.src);
+  }
 }
 
 
@@ -101,10 +135,13 @@ function AppContent() {
   const [shaderFps, setShaderFps] = useState<number | null>(null);
   const [shaderEnabled, setShaderEnabled] = useState(false);
   const isMountedRef = useRef(true);
+  const mediaItemsRef = useRef(mediaItems);
+  mediaItemsRef.current = mediaItems;
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
+      revokeMediaResources(mediaItemsRef.current.values());
     };
   }, []);
   
@@ -606,12 +643,12 @@ function AppContent() {
       const src = URL.createObjectURL(file);
       const duration = await loadMediaDuration(file, type);
       if (!isMountedRef.current) {
-        URL.revokeObjectURL(src);
+        revokeMediaResources([{ src }]);
         return;
       }
       const thumbnail = await generateThumbnail(file, type);
       if (!isMountedRef.current) {
-        URL.revokeObjectURL(src);
+        revokeMediaResources([{ src }]);
         return;
       }
       const item: MediaItem = { id: generateId(), name: file.name, type, file, src, duration, thumbnail };
@@ -629,7 +666,7 @@ function AppContent() {
   const handleRemoveMedia = useCallback((id: string) => {
     history.push(snapshot());
     const item = mediaItems.get(id);
-    if (item) URL.revokeObjectURL(item.src);
+    if (item) revokeMediaResources([item]);
     setMediaItems(previous => {
       if (!previous.has(id)) return previous;
       const next = new Map(previous);
