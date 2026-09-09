@@ -479,9 +479,6 @@ function AppContent() {
   const blockBackground = !allowEditsWhenMenuOpen && hasModalOpen;
 
   const [showExport, setShowExport] = useState(false);
-  const [exportVideo, setExportVideo] = useState(true);
-  const [exportAudio, setExportAudio] = useState(true);
-  const [exportPath, setExportPath] = useState('');
   useEffect(() => { try { window.localStorage.setItem('juicecut.layout.leftWidthPct', String(leftWidthPct)); } catch {} }, [leftWidthPct]);
   useEffect(() => { try { window.localStorage.setItem('juicecut.layout.timelineHeightPct', String(timelineHeightPct)); } catch {} }, [timelineHeightPct]);
 
@@ -1103,19 +1100,18 @@ function AppContent() {
           style={{ width: 400 }}
           body={
             <div className="settings-panel-content">
-              <label className="settings-checkbox-field" style={{ cursor: 'pointer' }}>
-                <span>Export video</span>
-                <input type="checkbox" className="settings-checkbox" checked={exportVideo} onChange={e => setExportVideo(e.target.checked)} />
-              </label>
-              <label className="settings-checkbox-field" style={{ cursor: 'pointer' }}>
-                <span>Export audio</span>
-                <input type="checkbox" className="settings-checkbox" checked={exportAudio} onChange={e => setExportAudio(e.target.checked)} />
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="text" className="settings-number-input" style={{ flex: 1, marginLeft: 0 }} placeholder="Export path..." value={exportPath} onChange={e => setExportPath(e.target.value)} />
-                <button className="btn-secondary" style={{ whiteSpace: 'nowrap', padding: '4px 12px' }}>Browse</button>
-              </div>
-              <button className="btn-primary" style={{ alignSelf: 'center', padding: '8px 32px', background: 'var(--input-field)' }}>Export</button>
+              <span style={{ color: 'var(--text-secondary)' }}>Export the video track as a WebM file.</span>
+              <button
+                className="btn-primary"
+                style={{ alignSelf: 'center', padding: '8px 32px', background: 'var(--input-field)' }}
+                onClick={() => {
+                  modalManager.close('export');
+                  setShowExport(false);
+                  void handleExport();
+                }}
+              >
+                Export video
+              </button>
             </div>
           }
         />
