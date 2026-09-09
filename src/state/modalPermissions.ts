@@ -15,7 +15,7 @@ export function registerModalPermissions() {
       }
       
       // If any modal is open, block it
-      if (state.openModals.size > 0) {
+      if (state.openModals.length > 0) {
         return { 
           allowed: false, 
           reason: '⚠ <br/>opening multiple menus is disabled' 
@@ -36,12 +36,12 @@ export function registerModalPermissions() {
       }
       
       // If allowing duplicate menus and one is already open, still allow
-      if (state.settings.allowDuplicateMenus && state.openModals.has('styles')) {
+      if (state.settings.allowDuplicateMenus && state.openModals.some(modal => modal.type === 'styles')) {
         return { allowed: true };
       }
       
       // If any modal is open, block it
-      if (state.openModals.size > 0) {
+      if (state.openModals.length > 0) {
         return { 
           allowed: false, 
           reason: '⚠ <br/>opening multiple menus is disabled' 
@@ -60,7 +60,7 @@ export function registerModalPermissions() {
         return { allowed: true };
       }
       
-      if (state.openModals.size > 0) {
+      if (state.openModals.length > 0) {
         return { 
           allowed: false, 
           reason: '⚠ <br/>opening multiple menus is disabled' 
@@ -79,7 +79,7 @@ export function registerModalPermissions() {
         return { allowed: true };
       }
       
-      if (state.openModals.size > 0) {
+      if (state.openModals.length > 0) {
         return { 
           allowed: false, 
           reason: '⚠ <br/>opening multiple menus is disabled' 
@@ -98,7 +98,7 @@ export function registerModalPermissions() {
         return { allowed: true };
       }
       
-      if (state.openModals.size > 0) {
+      if (state.openModals.length > 0) {
         return { 
           allowed: false, 
           reason: '⚠ <br/>opening multiple menus is disabled' 

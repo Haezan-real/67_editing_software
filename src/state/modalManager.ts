@@ -8,7 +8,7 @@ export interface ModalPermission {
 }
 
 export interface ModalManagerState {
-  openModals: Set<ModalType>;
+  openModals: ModalInstance[];
   settings: {
     allowMultipleMenus: boolean;
     allowDuplicateMenus: boolean;
@@ -16,9 +16,12 @@ export interface ModalManagerState {
   };
 }
 
-interface ModalInstance {
+export interface ModalInstance {
   id: number;
   type: ModalType;
+}
+
+interface ModalRegistration extends ModalInstance {
   close?: () => void;
 }
 
@@ -30,7 +33,7 @@ interface ModalRequest {
 
 class ModalManager {
   private state: ModalManagerState = {
-    openModals: new Set(),
+    openModals: [],
     settings: {
       allowMultipleMenus: true,
       allowDuplicateMenus: false,
@@ -40,7 +43,7 @@ class ModalManager {
   
   private permissions: Map<ModalType, ModalPermission> = new Map();
   private listeners: Set<(state: ModalManagerState) => void> = new Set();
-  private instances: ModalInstance[] = [];
+  private instances: ModalRegistration[] = [];
   private nextInstanceId = 1;
   
   constructor() {
@@ -110,7 +113,7 @@ class ModalManager {
     
     const id = this.nextInstanceId++;
     this.instances.push({ id, type: modalType });
-    this.state.openModals.add(modalType);
+    this.state.openModals = [...this.state.openModals, { id, type: modalType }];
     this.notifyListeners();
     return { allowed: true, id };
   }
@@ -145,12 +148,12 @@ class ModalManager {
   
   // Check if a specific modal is open
   isOpen(modalType: ModalType): boolean {
-    return this.state.openModals.has(modalType);
+    return this.state.openModals.some(instance => instance.type === modalType);
   }
   
   // Check if any modal is open
   hasAnyOpen(): boolean {
-    return this.state.openModals.size > 0;
+    return this.state.openModals.length > 0;
   }
   
   // Get count of how many times a specific modal is open
@@ -161,10 +164,8 @@ class ModalManager {
   private removeInstance(id: number): void {
     const index = this.instances.findIndex(instance => instance.id === id);
     if (index === -1) return;
-    const [removed] = this.instances.splice(index, 1);
-    if (!this.instances.some(instance => instance.type === removed.type)) {
-      this.state.openModals.delete(removed.type);
-    }
+    this.instances.splice(index, 1);
+    this.state.openModals = this.state.openModals.filter(instance => instance.id !== id);
     this.notifyListeners();
   }
   
