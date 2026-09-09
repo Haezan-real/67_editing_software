@@ -380,7 +380,7 @@ class WindowManager {
 
     // Fallback: get-window-source-id for non-shader mode
     ipcMain.handle('get-window-source-id', () => {
-      if (this.appWindow && this.appWindow.webContents) {
+      if (this.appWindow && !this.appWindow.isDestroyed() && this.appWindow.webContents) {
         return this.appWindow.webContents.getMediaSourceId(this.appWindow.webContents);
       }
       return null;
@@ -432,14 +432,6 @@ class WindowManager {
     } else {
       // Fallback: single window, no shader overlay
       this.createFallbackWindow();
-
-      // Register the IPC handler for fallback mode
-      ipcMain.handle('get-window-source-id', () => {
-        if (this.appWindow && this.appWindow.webContents) {
-          return this.appWindow.webContents.getMediaSourceId(this.appWindow.webContents);
-        }
-        return null;
-      });
 
       this.appWindow.webContents.on('did-finish-load', () => {
         console.log('🔧 Main window loaded (no shader overlay)');
