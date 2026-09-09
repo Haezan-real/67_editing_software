@@ -1,14 +1,17 @@
 # a video editor
 
-### important commands:
+### how to run
+get node.js
 
-do npm run dev -- --host 0.0.0.0 in cmd
+in cmd, do `npm install`
 
-to run as an actual app/window: do: npm install --save-dev electron
+in command prompt (not powershell): `npm run dev -- --host 0.0.0.0`
 
-then do npx electron main.cjs in cmd
+to run as an actual app/window: do: `npm install --save-dev electron`
 
-you also need webcodecs so do npm install -D @types/dom-webcodecs
+then, in cmd: `npx electron main.cjs`
+
+you also need webcodecs so do `npm install -D @types/dom-webcodecs`
 
 
 
