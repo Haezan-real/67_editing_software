@@ -9,7 +9,7 @@ import { OpenTorusMenuEditor } from './TorusMenuEditor';
 import { OpenPlayneedleEditor } from './PlayneedleEditor';
 import { modalManager } from '../state/modalManager';
 import { showToast } from './Toast';
-import { dispatchSettingsChanged } from '../state/settingsEvents';
+import { useSettings } from '../state/settingsStore';
 
 // Stretch factors for the playneedle icon
 const PLAYNEEDLE_ICON_HORIZONTAL_STRETCH_FACTOR = 0.4; // default 0.4
@@ -129,30 +129,22 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
   const getTabLabel = (tab: SettingsTab): string => TAB_NAMES[tab];
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  const [guiScale, setGuiScale] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.guiScale"); return v ? Number(v) : 100; } catch { return 100; } });
-  const [includeResizeInUndo, setIncludeResizeInUndo] = useState<boolean>(() => { try { const v = window.localStorage.getItem("juicecut.settings.includeResizeInUndo"); return v === null ? true : v === "true"; } catch { return true; } });
-  const [zoomEpicenter, setZoomEpicenter] = useState<string>(() => { try { return window.localStorage.getItem('juicecut.settings.zoomEpicenter') || 'playneedle'; } catch { return 'playneedle'; } });
-  const [scrollSmooth, setScrollSmooth] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.scrollSmooth"); return v ? Number(v) : 50; } catch { return 50; } });
-  const [scrollAmount, setScrollAmount] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.scrollAmount"); return v ? Number(v) : 100; } catch { return 100; } });
-  const [scrollZoomAmount, setScrollZoomAmount] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.scrollZoomAmount"); return v ? Number(v) : 25; } catch { return 25; } });
-  const [scrollZoomSmoothness, setScrollZoomSmoothness] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.scrollZoomSmoothness"); return v ? Number(v) : 70; } catch { return 70; } });
-  const [viewerControlsType, setViewerControlsType] = useState<string>(() => { try { return window.localStorage.getItem('juicecut.settings.viewerControlsType') || 'compact'; } catch { return 'compact'; } });
-  const [timecodePanel, setTimecodePanel] = useState<string>(() => { try { return window.localStorage.getItem('juicecut.settings.timecodePanel') || 'both'; } catch { return 'both'; } });
-  const [torusScrollingDisabled, setTorusScrollingDisabled] = useState<string>(() => { try { return window.localStorage.getItem('juicecut.settings.torusScrollingDisabled') || 'none'; } catch { return 'none'; } });
-  const [elevatedPanelDarken, setElevatedPanelDarken] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.elevatedPanelDarkenAmount"); return v ? Number(v) : 50; } catch { return 50; } });
-  const [elevatedPanelBlur, setElevatedPanelBlur] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.elevatedPanelBlurAmount"); return v ? Number(v) : 0; } catch { return 0; } });
-  const [pnT, setPnT] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedle_t"); return v !== null ? Number(v) : 0.092; } catch { return 0.092; } });
-  const [pnJ, setPnJ] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedle_j"); return v !== null ? Number(v) : 0.049; } catch { return 0.049; } });
-  const [pnK, setPnK] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedle_k"); return v !== null ? Number(v) : 103; } catch { return 103; } });
-  const [draggableHeaderButtons, setDraggableHeaderButtons] = useState<boolean>(() => {
-    try {
-      const v = window.localStorage.getItem("juicecut.settings.draggableHeaderButtons");
-      return v === null ? true : v === "true";
-    } catch {
-      return true;
-    }
-  });
-
+  const {
+    guiScale, setGuiScale, includeResizeInUndo, setIncludeResizeInUndo,
+    zoomEpicenter, setZoomEpicenter, scrollSmooth, setScrollSmooth,
+    scrollAmount, setScrollAmount, scrollZoomAmount, setScrollZoomAmount,
+    scrollZoomSmoothness, setScrollZoomSmoothness, viewerControlsType, setViewerControlsType,
+    timecodePanel, setTimecodePanel, torusScrollingDisabled, setTorusScrollingDisabled,
+    elevatedPanelDarken, setElevatedPanelDarken, elevatedPanelBlur, setElevatedPanelBlur,
+    pnT, setPlayneedle_t: setPnT, pnJ, setPlayneedle_j: setPnJ, pnK, setPlayneedle_k: setPnK,
+    draggableHeaderButtons, setDraggableHeaderButtons,
+    allowMultipleMenus, setAllowMultipleMenus, allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen,
+    executeHeaderButtonsOnDrag, setExecuteHeaderButtonsOnDrag,
+    pnS, setPlayneedle_s: setPnS, pnVo, setPlayneedle_v_o: setPnVo,
+    pnHb, setPlayneedle_h_b: setPnHb, pnHr, setPlayneedle_h_r: setPnHr,
+    playneedleIconHorizontalStretch, setPlayneedleIconHorizontalStretch,
+    colorTransitionDuration, setColorTransitionDuration,
+  } = useSettings();
   // Toggle Switch component for cleaner rendering
   function ToggleSwitch({ checked, onChange, disabled, title }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; title?: string }) {
     return (
@@ -167,75 +159,7 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
     );
   }
   
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("juicecut.settings.draggableHeaderButtons", String(draggableHeaderButtons));
-    } catch {}
-  }, [draggableHeaderButtons]);
-
-  const [allowMultipleMenus, setAllowMultipleMenus] = useState<boolean>(() => {
-    try {
-      const v = window.localStorage.getItem("juicecut.settings.allowMultipleMenus");
-      return v === null ? true : v === "true";
-    } catch {
-      return true;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("juicecut.settings.allowMultipleMenus", String(allowMultipleMenus));
-      modalManager.updateSettings('allowMultipleMenus', allowMultipleMenus);
-      dispatchSettingsChanged('allowMultipleMenus', allowMultipleMenus);
-    } catch {}
-  }, [allowMultipleMenus]);
-
-  const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState<boolean>(() => {
-    try {
-      const v = window.localStorage.getItem("juicecut.settings.allowEditsWhenMenuOpen");
-      return v === null ? true : v === "true";
-    } catch {
-      return true;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("juicecut.settings.allowEditsWhenMenuOpen", String(allowEditsWhenMenuOpen));
-      dispatchSettingsChanged('allowEditsWhenMenuOpen', allowEditsWhenMenuOpen);
-    } catch {}
-  }, [allowEditsWhenMenuOpen]);
-
   const [requireDragHover, setRequireDragHover] = useState(false);
-
-  const [executeHeaderButtonsOnDrag, setExecuteHeaderButtonsOnDrag] = useState<boolean>(() => {
-    try {
-      const v = window.localStorage.getItem("juicecut.settings.executeHeaderButtonsOnDrag");
-      return v === null ? true : v === "true";
-    } catch {
-      return true;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("juicecut.settings.executeHeaderButtonsOnDrag", String(executeHeaderButtonsOnDrag));
-    } catch {}
-  }, [executeHeaderButtonsOnDrag]);
-
-  const [pnS, setPnS] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedle_s"); return v !== null ? Number(v) : 16.4; } catch { return 16.4; } });
-  const [pnVo, setPnVo] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedle_v_o"); return v !== null ? Number(v) : 0.4; } catch { return 0.4; } });
-  const [pnHb, setPnHb] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedle_h_b"); return v !== null ? Number(v) : 0.8; } catch { return 0.8; } });
-  const [pnHr, setPnHr] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedle_h_r"); return v !== null ? Number(v) : 1; } catch { return 1; } });
-  const [playneedleIconHorizontalStretch, setPlayneedleIconHorizontalStretch] = useState<number>(() => { try { const v = window.localStorage.getItem("juicecut.settings.playneedleIconHorizontalStretch"); return v !== null ? Number(v) : PLAYNEEDLE_ICON_HORIZONTAL_STRETCH_FACTOR; } catch { return PLAYNEEDLE_ICON_HORIZONTAL_STRETCH_FACTOR; } });
-  const [colorTransitionDuration, setColorTransitionDuration] = useState<number>(() => {
-    try {
-      const v = window.localStorage.getItem("juicecut.settings.colorTransitionDuration");
-      return v !== null ? Number(v) : 0;
-    } catch {
-      return 0;
-    }
-  });
 
   const [shortcuts, setShortcuts] = useState<Record<ShortcutAction, string[][]>>(loadAllShortcuts);
   const [editingChip, setEditingChip] = useState<{ action: ShortcutAction; index: number } | null>(null);
@@ -245,49 +169,11 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
   const scrollAmountToSlider = (value: number) => { if (value <= 1) return 0; if (value >= 400) return 1000; return Math.round(1000 * Math.pow((value - 1) / 399, 1 / SCROLL_AMOUNT_POWER)); };
   const sliderToScrollAmount = (sv: number) => { return Math.round(1 + 399 * Math.pow(Math.max(0, Math.min(1, sv / 1000)), SCROLL_AMOUNT_POWER)); };
 
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.guiScale", String(guiScale)); document.documentElement.style.setProperty('--gui-scale', `${guiScale / 100}`); dispatchSettingsChanged('guiScale', guiScale); } catch {} }, [guiScale]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.includeResizeInUndo", includeResizeInUndo ? "true" : "false"); } catch {} }, [includeResizeInUndo]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.zoomEpicenter', zoomEpicenter); dispatchSettingsChanged('zoomEpicenter', zoomEpicenter); } catch {} }, [zoomEpicenter]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollSmooth", String(scrollSmooth)); } catch {} }, [scrollSmooth]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollAmount", String(scrollAmount)); } catch {} }, [scrollAmount]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollZoomAmount", String(scrollZoomAmount)); dispatchSettingsChanged('scrollZoomAmount', scrollZoomAmount); } catch {} }, [scrollZoomAmount]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.scrollZoomSmoothness", String(scrollZoomSmoothness)); dispatchSettingsChanged('scrollZoomSmoothness', scrollZoomSmoothness); } catch {} }, [scrollZoomSmoothness]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.viewerControlsType', viewerControlsType); dispatchSettingsChanged('viewerControlsType', viewerControlsType); } catch {} }, [viewerControlsType]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.timecodePanel', timecodePanel); dispatchSettingsChanged('timecodePanel', timecodePanel); } catch {} }, [timecodePanel]);
-  useEffect(() => { try { window.localStorage.setItem('juicecut.settings.torusScrollingDisabled', torusScrollingDisabled); dispatchSettingsChanged('torusScrollingDisabled', torusScrollingDisabled); } catch {} }, [torusScrollingDisabled]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.elevatedPanelDarkenAmount", String(elevatedPanelDarken)); dispatchSettingsChanged('elevatedPanelDarkenAmount', elevatedPanelDarken); } catch {} }, [elevatedPanelDarken]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.elevatedPanelBlurAmount", String(elevatedPanelBlur)); dispatchSettingsChanged('elevatedPanelBlurAmount', elevatedPanelBlur); } catch {} }, [elevatedPanelBlur]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_t", String(pnT)); dispatchSettingsChanged('playneedle_t', pnT); } catch {} }, [pnT]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_j", String(pnJ)); dispatchSettingsChanged('playneedle_j', pnJ); } catch {} }, [pnJ]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_k", String(pnK)); dispatchSettingsChanged('playneedle_k', pnK); } catch {} }, [pnK]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_s", String(pnS)); dispatchSettingsChanged('playneedle_s', pnS); } catch {} }, [pnS]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_v_o", String(pnVo)); dispatchSettingsChanged('playneedle_v_o', pnVo); } catch {} }, [pnVo]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_h_b", String(pnHb)); dispatchSettingsChanged('playneedle_h_b', pnHb); } catch {} }, [pnHb]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedle_h_r", String(pnHr)); dispatchSettingsChanged('playneedle_h_r', pnHr); } catch {} }, [pnHr]);
-  useEffect(() => { try { window.localStorage.setItem("juicecut.settings.playneedleIconHorizontalStretch", String(playneedleIconHorizontalStretch)); dispatchSettingsChanged('playneedleIconHorizontalStretch', playneedleIconHorizontalStretch); } catch {} }, [playneedleIconHorizontalStretch]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("juicecut.settings.colorTransitionDuration", String(colorTransitionDuration));
-      if (!(window as any).juicecut) (window as any).juicecut = {};
-      if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
-      (window as any).juicecut.settings.colorTransitionDuration = colorTransitionDuration;
-      
-      if (document.documentElement) {
-        document.documentElement.style.setProperty('--theme-transition-duration', `${colorTransitionDuration}ms`);
-        document.documentElement.style.setProperty('--theme-transition-timing', 'cubic-bezier(0.4, 0, 0.2, 1)');
-      }
-    } catch {}
-  }, [colorTransitionDuration]);
-
   useEffect(() => {
     if (initialScroll != null && panelRef.current) {
       const el = panelRef.current.querySelector(".settings-panel-content");
       if (el) el.scrollTop = initialScroll;
     }
-    if (!(window as any).juicecut) (window as any).juicecut = {};
-    if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
-    (window as any).juicecut.settings.draggableHeaderButtons = draggableHeaderButtons;
   }, []);
 
   const addCombination = (action: ShortcutAction) => { const next = { ...shortcuts, [action]: [...shortcuts[action], []] }; setShortcuts(next); scUpdate(next); const newIndex = next[action].length - 1; setEditingChip({ action, index: newIndex }); setTimeout(() => { chipRefs.current[`${action}-${newIndex}`]?.focus(); }, 0); };
