@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { MediaItem, TimelineClip, Track } from '../types';
 import { generateId } from '../types';
 
@@ -20,6 +20,19 @@ const TRACKS: Track[] = [
 ];
 
 export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, history, snapshot }: TimelineEditorOptions) {
+  const fadeHistorySnapshotRef = useRef<unknown | null>(null);
+
+  const handleFadeDragStart = useCallback(() => {
+    fadeHistorySnapshotRef.current = snapshot();
+  }, [snapshot]);
+
+  const handleFadeDragEnd = useCallback(() => {
+    if (fadeHistorySnapshotRef.current !== null) {
+      history.push(fadeHistorySnapshotRef.current);
+      fadeHistorySnapshotRef.current = null;
+    }
+  }, [history]);
+
   const handleDropMedia = useCallback((mediaId: string, track: number, startFrame: number) => {
     history.push(snapshot());
     const media = mediaItems.get(mediaId);
@@ -111,13 +124,12 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [history, setClips, snapshot]);
 
   const handleFadeChange = useCallback((clipId: string, side: 'in' | 'out', frames: number) => {
-    history.push(snapshot());
     setClips(previous => previous.map(clip => {
       if (clip.id !== clipId) return clip;
       const maxFade = Math.floor((clip.endFrame - clip.startFrame) / 2);
       return { ...clip, fades: { ...clip.fades, [side]: Math.min(Math.max(0, frames), maxFade) } };
     }));
-  }, [history, setClips, snapshot]);
+  }, [setClips]);
 
   const handleStepEdge = useCallback((clipId: string | null, cutBetween: [string, string] | null, direction: number, ripple: boolean) => {
     history.push(snapshot());
@@ -142,5 +154,5 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
     setClips(previous => previous.map(clip => clip.id === clipId ? { ...clip, srcIn: newSrcIn, srcOut: newSrcOut } : clip));
   }, [history, setClips, snapshot]);
 
-  return { handleDropMedia, handleSelectClip, handleNudge, handleSplitClip, handleTrimLatter, handleTrimFormer, handleJoin, handleFadeChange, handleStepEdge, handleRollApply };
+  return { handleDropMedia, handleSelectClip, handleNudge, handleSplitClip, handleTrimLatter, handleTrimFormer, handleJoin, handleFadeChange, handleFadeDragStart, handleFadeDragEnd, handleStepEdge, handleRollApply };
 }

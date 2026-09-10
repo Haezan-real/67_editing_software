@@ -620,6 +620,7 @@ function AppContent() {
   const {
     handleDropMedia, handleSelectClip, handleNudge, handleSplitClip,
     handleTrimLatter, handleTrimFormer, handleJoin, handleFadeChange,
+    handleFadeDragStart, handleFadeDragEnd,
     handleStepEdge, handleRollApply,
   } = useTimelineEditor({ mediaItems, setClips, setSelectedIds, history, snapshot });
 
@@ -795,7 +796,7 @@ function AppContent() {
           }} onDragEnd={() => { history.push({ ...snapshot(), __meta: { type: 'resize' } }); }} />
         </div>
 
-        <Timeline clips={clips} tracks={TRACKS} mediaItems={mediaItems} playhead={playhead} selectedIds={selectedIds} onSeek={setPlayhead} onDropMedia={handleDropMedia} onSelectClip={handleSelectClip} onSplitClip={handleSplitClip} onTrimLatter={handleTrimLatter} onTrimFormer={handleTrimFormer} onNudge={handleNudge} onJoin={handleJoin} onFadeChange={handleFadeChange} onRoll={setRollClipId} onStepEdge={handleStepEdge} totalFrames={totalFrames} />
+        <Timeline clips={clips} tracks={TRACKS} mediaItems={mediaItems} playhead={playhead} selectedIds={selectedIds} onSeek={setPlayhead} onDropMedia={handleDropMedia} onSelectClip={handleSelectClip} onSplitClip={handleSplitClip} onTrimLatter={handleTrimLatter} onTrimFormer={handleTrimFormer} onNudge={handleNudge} onJoin={handleJoin} onFadeChange={handleFadeChange} onFadeDragStart={handleFadeDragStart} onFadeDragEnd={handleFadeDragEnd} onRoll={setRollClipId} onStepEdge={handleStepEdge} totalFrames={totalFrames} />
       </div>
       {showExport && (
         <DraggableModal

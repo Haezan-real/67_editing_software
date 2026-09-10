@@ -24,6 +24,8 @@ interface Props {
   onNudge: (ids: string[], delta: number) => void;
   onJoin: (clipAId: string, clipBId: string) => void;
   onFadeChange: (clipId: string, side: 'in' | 'out', frames: number) => void;
+  onFadeDragStart: () => void;
+  onFadeDragEnd: () => void;
   onRoll: (clipId: string) => void;
   onStepEdge: (clipId: string | null, cutBetween: [string, string] | null, direction: number, ripple: boolean) => void;
   totalFrames: number;
@@ -93,7 +95,7 @@ export default function Timeline({
   clips, tracks, playhead, selectedIds,
   onSeek, onDropMedia, onSelectClip,
   onSplitClip, onTrimLatter, onTrimFormer,
-  onNudge, onJoin, onFadeChange, onRoll, onStepEdge,
+  onNudge, onJoin, onFadeChange, onFadeDragStart, onFadeDragEnd, onRoll, onStepEdge,
   totalFrames,
   mediaItems
 }: PropsWithMedia) {
@@ -413,6 +415,7 @@ export default function Timeline({
       origFrames: side === 'in' ? clip.fades.in : clip.fades.out,
       mouseStartX: e.clientX
     });
+    onFadeDragStart();
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -451,11 +454,14 @@ export default function Timeline({
       if (el) el.style.transform = '';
       setDragState(null);
     }
-    if (fadeState) setFadeState(null);
+    if (fadeState) {
+      setFadeState(null);
+      onFadeDragEnd();
+    }
     if (playheadDraggingRef.current) {
       playheadDraggingRef.current = false;
     }
-  }, [dragState, fadeState, zoom, onNudge]);
+  }, [dragState, fadeState, zoom, onNudge, onFadeDragEnd]);
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
