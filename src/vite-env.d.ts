@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+import './electronApi';
+
 declare module '*.vert?raw' {
   const content: string;
   export default content;

@@ -135,12 +135,12 @@ export default function ShaderSelectorModal({ onClose }: { onClose: () => void }
     setActiveShader(shaderName);
     
     // 🔥 CRITICAL: Send IPC message to the main process
-    const api = (window as any).electronAPI;
-    if (api?.send) {
-      api.send('change-shader', shaderName);
+    const api = window.electronAPI;
+    if (api) {
+      api.requestShaderChange(shaderName);
       console.log(`[ShaderSelector] ✅ Sent IPC 'change-shader' for: ${shaderName}`);
     } else {
-      console.error('[ShaderSelector] ❌ electronAPI.send not found!');
+      console.error('[ShaderSelector] ❌ electronAPI.requestShaderChange not found!');
     }
   };
 

@@ -156,11 +156,10 @@ function AppContent() {
 
   // Listen for FPS updates from the shader window (forwarded via main process)
   useEffect(() => {
-    const api = (window as any).electronAPI;
-    if (!api?.on) return;
-    api.on('shader-fps', (fps: number) => {
+    const unsubscribe = window.electronAPI?.onShaderFps((fps: number) => {
       setShaderFps(fps);
     });
+    return unsubscribe;
   }, []);
 
   // When shader window is disabled, measure the app window's own FPS
@@ -231,10 +230,7 @@ function AppContent() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<{ shaderName?: string }>).detail;
       if (detail?.shaderName) {
-        const api = (window as any).electronAPI;
-        if (api?.send) {
-          api.send('switch-shader', { shaderName: detail.shaderName });
-        }
+        window.electronAPI?.requestShaderChange(detail.shaderName);
       }
     };
     window.addEventListener('juicecut-shader-change', handler);
@@ -282,8 +278,8 @@ function AppContent() {
 
   // Send theme colors to shader window for dynamic effects and UI masking
   useEffect(() => {
-    const api = (window as any).electronAPI;
-    if (!api?.send) return;
+    const api = window.electronAPI;
+    if (!api) return;
 
     const sendThemeColorsToShader = () => {
       const styles = getComputedStyle(document.documentElement);
@@ -343,7 +339,7 @@ function AppContent() {
       colorArray.push(medianSat);
       colorArray.push(medianBright);
 
-      api.send('update-shader-colors', colorArray);
+      api.sendShaderColors(colorArray);
     };
 
     // Send on mount
@@ -503,11 +499,11 @@ function AppContent() {
   }, [playing, totalFrames]);
 
   // Window controls (Electron only)
-  const sendWindowCommand = useCallback((command: string) => {
-    const api = (window as any).electronAPI;
-    if (api?.send) {
-      api.send(command);
-    }
+  const sendWindowCommand = useCallback((command: 'minimize' | 'maximize' | 'close') => {
+    const api = window.electronAPI;
+    if (command === 'minimize') api?.minimizeWindow();
+    if (command === 'maximize') api?.toggleMaximizeWindow();
+    if (command === 'close') api?.closeWindow();
   }, []);
 
   // Track mouse position for custom cursor overlay (sent to main process → forwarded to shader_window)
@@ -515,13 +511,13 @@ function AppContent() {
   // the Splitter component uses pointer events for dragging, and during a
   // pointer drag the browser can suppress mousemove events.
   useEffect(() => {
-    const api = (window as any).electronAPI;
-    if (!api?.send) return;
+    const api = window.electronAPI;
+    if (!api) return;
     const mouseHandler = (e: MouseEvent) => {
-      api.send('cursor-move', { x: e.clientX, y: e.clientY });
+      api.sendCursorPosition({ x: e.clientX, y: e.clientY });
     };
     const pointerHandler = (e: PointerEvent) => {
-      api.send('cursor-move', { x: e.clientX, y: e.clientY });
+      api.sendCursorPosition({ x: e.clientX, y: e.clientY });
     };
     document.addEventListener('mousemove', mouseHandler);
     document.addEventListener('pointermove', pointerHandler);
@@ -741,9 +737,9 @@ function AppContent() {
         </button>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: WINDOW_BUTTONS_SPACING, alignItems: 'center' }}>
-          <button className="status-dot" data-color="yellow" title="Minimize" onClick={() => sendWindowCommand('window-minimize')} style={{ width: WINDOW_BUTTONS_SIZE, height: WINDOW_BUTTONS_SIZE }} />
-          <button className="status-dot" data-color="green" title="Maximize" onClick={() => sendWindowCommand('window-maximize')} style={{ width: WINDOW_BUTTONS_SIZE, height: WINDOW_BUTTONS_SIZE }} />
-          <button className="status-dot" data-color="red" title="Close" onClick={() => sendWindowCommand('window-close')} style={{ width: WINDOW_BUTTONS_SIZE, height: WINDOW_BUTTONS_SIZE }} />
+          <button className="status-dot" data-color="yellow" title="Minimize" onClick={() => sendWindowCommand('minimize')} style={{ width: WINDOW_BUTTONS_SIZE, height: WINDOW_BUTTONS_SIZE }} />
+          <button className="status-dot" data-color="green" title="Maximize" onClick={() => sendWindowCommand('maximize')} style={{ width: WINDOW_BUTTONS_SIZE, height: WINDOW_BUTTONS_SIZE }} />
+          <button className="status-dot" data-color="red" title="Close" onClick={() => sendWindowCommand('close')} style={{ width: WINDOW_BUTTONS_SIZE, height: WINDOW_BUTTONS_SIZE }} />
         </div>
       </header>
       <div

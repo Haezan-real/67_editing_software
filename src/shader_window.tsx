@@ -147,7 +147,7 @@ async function main() {
     console.log('Overlay: WebGL2 context created successfully');
 
     // ─── Create the shader renderer ─────────────────────────────────────────
-    const api = (window as any).electronAPI;
+    const api = window.electronAPI;
     
     let currentShaderName = 'default_shader'; // Can be updated via localStorage later
     let rendererRequestId = 0;
@@ -228,7 +228,7 @@ async function main() {
 
     // ── Custom cursor: listen for mouse position from the app window ─────────
     if (customCursor && api) {
-      api.on('cursor-move', (pos: { x: number; y: number }) => {
+      api.onCursorMove((pos: { x: number; y: number }) => {
         // Normalize to 0.0 – 1.0 relative to the shader window viewport
         const nx = pos.x / window.innerWidth;
         const ny = pos.y / window.innerHeight;
@@ -240,7 +240,7 @@ async function main() {
     // ── Shader switching via IPC from app window ─────────────────────────────
     // 6. 🔥 LISTEN FOR SHADER CHANGES FROM MAIN PROCESS
     if (api) {
-      api.on('apply-shader', async (newShaderName: string) => {
+      api.onApplyShader(async (newShaderName: string) => {
         console.log(`[ShaderWindow] Received request to change shader to: ${newShaderName}`);
         
         // Just call our robust initializeRenderer function!
@@ -269,7 +269,7 @@ async function main() {
     let currentMedianBright = 0.0;
 
     if (api) {
-      api.on('shader-colors-update', (colors: number[]) => {
+      api.onShaderColorsUpdate((colors: number[]) => {
         if (colors && colors.length === 17 * 3 + 3) {
           // First 51 floats are the theme colors
           currentThemeColors = new Float32Array(colors.slice(0, 17 * 3));
@@ -372,7 +372,7 @@ async function main() {
           if (now - videoFrameStartTime >= 1000) {
             console.log(`📹 VIDEO STREAM FPS: ${videoFrameCount}`);
               if (api) {
-              api.send('shader-fps', videoFrameCount);
+              api.sendShaderFps(videoFrameCount);
             }
             videoFrameCount = 0;
             videoFrameStartTime = now;

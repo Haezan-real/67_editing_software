@@ -281,6 +281,7 @@ class WindowManager {
 
   setupDragHandling() {
     ipcMain.on('change-shader', (event, shaderName) => {
+      if (typeof shaderName !== 'string' || shaderName.length === 0) return;
       console.log(`[Main Process] 🔄 Received change-shader: ${shaderName}`);
       
       // Replace 'shaderWindow' with whatever variable name you use for your overlay window
@@ -346,6 +347,7 @@ class WindowManager {
 
     // Forward mouse position from app_window to shader_window for custom cursor
     ipcMain.on('cursor-move', (_event, pos) => {
+      if (!pos || !Number.isFinite(pos.x) || !Number.isFinite(pos.y)) return;
       if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
         this.shaderWindow.webContents.send('cursor-move', pos);
       }
@@ -353,6 +355,7 @@ class WindowManager {
 
     // Forward FPS from shader_window to app_window for the FPS counter display
     ipcMain.on('shader-fps', (_event, fps) => {
+      if (!Number.isFinite(fps)) return;
       if (this.appWindow && !this.appWindow.isDestroyed()) {
         this.appWindow.webContents.send('shader-fps', fps);
       }
@@ -360,6 +363,7 @@ class WindowManager {
 
     // Forward theme colors from app_window to shader_window for dynamic effects and UI masking
     ipcMain.on('update-shader-colors', (_event, colorArray) => {
+      if (!Array.isArray(colorArray) || !colorArray.every(color => Number.isFinite(color))) return;
       if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
         this.shaderWindow.webContents.send('shader-colors-update', colorArray);
       }

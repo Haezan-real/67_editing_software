@@ -37,20 +37,42 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 3. Expose IPC for window controls
+function subscribe(channel, callback) {
+  const listener = (_event, value) => callback(value);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
+// 3. Expose an explicit, allowlisted IPC API
 contextBridge.exposeInMainWorld('electronAPI', {
-  send: (channel, data) => {
-    ipcRenderer.send(channel, data);
-  },
-  on: (channel, callback) => {
-    ipcRenderer.on(channel, (_event, ...args) => callback(...args));
-  },
-  // Get the window source ID (base64 format) for getDisplayMedia
-  getWindowSourceId: () => ipcRenderer.invoke('get-window-source-id'),
-  // Get the window source ID (window:PID:ID format) for getUserMedia
-  getWindowSourceDesktopId: () => ipcRenderer.invoke('get-window-source-desktop-id'),
-  // Toggle app_window click-through at runtime
+  minimizeWindow: () => ipcRenderer.send('window-minimize'),
+  toggleMaximizeWindow: () => ipcRenderer.send('window-maximize'),
+  toggleFullscreen: () => ipcRenderer.send('window-fullscreen'),
+  closeWindow: () => ipcRenderer.send('window-close'),
   toggleAppClickthrough: () => ipcRenderer.send('toggle-app-clickthrough'),
-  // Notify main process that shader window is ready
+  requestShaderChange: (shaderName) => {
+    if (typeof shaderName === 'string' && shaderName.length > 0) {
+      ipcRenderer.send('change-shader', shaderName);
+    }
+  },
+  sendCursorPosition: (position) => {
+    if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) {
+      ipcRenderer.send('cursor-move', { x: position.x, y: position.y });
+    }
+  },
+  sendShaderFps: (fps) => {
+    if (Number.isFinite(fps)) ipcRenderer.send('shader-fps', fps);
+  },
+  sendShaderColors: (colors) => {
+    if (Array.isArray(colors) && colors.every(color => Number.isFinite(color))) {
+      ipcRenderer.send('update-shader-colors', colors);
+    }
+  },
+  onShaderFps: callback => subscribe('shader-fps', callback),
+  onCursorMove: callback => subscribe('cursor-move', callback),
+  onApplyShader: callback => subscribe('apply-shader', callback),
+  onShaderColorsUpdate: callback => subscribe('shader-colors-update', callback),
+  getWindowSourceId: () => ipcRenderer.invoke('get-window-source-id'),
+  getWindowSourceDesktopId: () => ipcRenderer.invoke('get-window-source-desktop-id'),
   notifyShaderWindowReady: () => ipcRenderer.send('shader-window-ready'),
 });
