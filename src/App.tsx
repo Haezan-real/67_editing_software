@@ -197,9 +197,14 @@ function AppContent() {
   } = useLayoutSettings();
   const [showStyle, setShowStyle] = useState(false);
   const [stylePage, setStylePage] = useState<string | null>(null);
-  const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState(() => 
-    (window as any).juicecut?.settings?.allowEditsWhenMenuOpen ?? true
-  );
+  const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState(() => {
+    try {
+      const value = window.localStorage.getItem('juicecut.settings.allowEditsWhenMenuOpen');
+      return value === null ? true : value === 'true';
+    } catch {
+      return true;
+    }
+  });
 
   // Watch for modal overlays in DOM to toggle hasModalOpen
   useEffect(() => {
@@ -471,12 +476,6 @@ function AppContent() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Skip if graph editor already handled undo/redo via capture phase
-      if ((window as any).__graphUndoRedoHandled) {
-        (window as any).__graphUndoRedoHandled = false;
-        return;
-      }
-      
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
       if (e.ctrlKey && e.key.toLowerCase() === 'a') { e.preventDefault(); return; }

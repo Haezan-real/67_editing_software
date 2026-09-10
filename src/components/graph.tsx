@@ -389,7 +389,6 @@ export default function GraphEditor({
         console.log('>>> UNDO SHORTCUT MATCHED! Calling handleUndoRef.current()');
         e.preventDefault();
         e.stopImmediatePropagation();
-        (window as any).__graphUndoRedoHandled = true;
         try {
           handleUndoRef.current();
           console.log('>>> handleUndoRef.current() completed');
@@ -403,7 +402,6 @@ export default function GraphEditor({
         console.log('>>> REDO SHORTCUT MATCHED!');
         e.preventDefault();
         e.stopImmediatePropagation();
-        (window as any).__graphUndoRedoHandled = true;
         handleRedoRef.current();
       }
     };

@@ -170,9 +170,6 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
   useEffect(() => {
     try {
       window.localStorage.setItem("juicecut.settings.draggableHeaderButtons", String(draggableHeaderButtons));
-      if (!(window as any).juicecut) (window as any).juicecut = {};
-      if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
-      (window as any).juicecut.settings.draggableHeaderButtons = draggableHeaderButtons;
     } catch {}
   }, [draggableHeaderButtons]);
 
@@ -188,9 +185,6 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
   useEffect(() => {
     try {
       window.localStorage.setItem("juicecut.settings.allowMultipleMenus", String(allowMultipleMenus));
-      if (!(window as any).juicecut) (window as any).juicecut = {};
-      if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
-      (window as any).juicecut.settings.allowMultipleMenus = allowMultipleMenus;
       modalManager.updateSettings('allowMultipleMenus', allowMultipleMenus);
       dispatchSettingsChanged('allowMultipleMenus', allowMultipleMenus);
     } catch {}
@@ -208,9 +202,6 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
   useEffect(() => {
     try {
       window.localStorage.setItem("juicecut.settings.allowEditsWhenMenuOpen", String(allowEditsWhenMenuOpen));
-      if (!(window as any).juicecut) (window as any).juicecut = {};
-      if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
-      (window as any).juicecut.settings.allowEditsWhenMenuOpen = allowEditsWhenMenuOpen;
       dispatchSettingsChanged('allowEditsWhenMenuOpen', allowEditsWhenMenuOpen);
     } catch {}
   }, [allowEditsWhenMenuOpen]);
@@ -229,9 +220,6 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
   useEffect(() => {
     try {
       window.localStorage.setItem("juicecut.settings.executeHeaderButtonsOnDrag", String(executeHeaderButtonsOnDrag));
-      if (!(window as any).juicecut) (window as any).juicecut = {};
-      if (!(window as any).juicecut.settings) (window as any).juicecut.settings = {};
-      (window as any).juicecut.settings.executeHeaderButtonsOnDrag = executeHeaderButtonsOnDrag;
     } catch {}
   }, [executeHeaderButtonsOnDrag]);
 
@@ -539,6 +527,5 @@ export function OpenSettings(pageData?: any, scroll?: number | null) {
 }
 
 export function closeSettings() { modalManager.close('settings'); const existing = document.querySelector(".modal-overlay.settings-modal"); if (existing && existing.parentNode) existing.parentNode.removeChild(existing); }
-(window as any).__onColorPickerClose = null;
 try { (window as any).OpenSettings = OpenSettings; } catch (e) {}
 try { (window as any).closeSettings = closeSettings; } catch (e) {}

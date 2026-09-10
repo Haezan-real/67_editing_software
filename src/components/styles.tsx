@@ -137,9 +137,12 @@ export function StylesContent({ themeName, setShowStyle, setStylePage }: {
     const colorField = colorFields.find(c => c.varName === varName);
     const colorLabel = colorField ? colorField.label : 'Color';
     setShowStyle(false);
-    const cleanup = OpenColorPicker({ value: currentValue, onChange: (hex: string) => updateColor(varName, hex), targetElement: colorLabel });
-    (window as any).__onColorPickerClose = () => { setShowStyle(true); setStylePage(themeName); };
-    (window as any).__colorPickerCleanup = () => { cleanup(); if ((window as any).__onColorPickerClose) { (window as any).__onColorPickerClose(); (window as any).__onColorPickerClose = null; } };
+    const cleanup = OpenColorPicker({
+      value: currentValue,
+      onChange: (hex: string) => updateColor(varName, hex),
+      targetElement: colorLabel,
+      onClose: () => { setShowStyle(true); setStylePage(themeName); },
+    });
   }
 
   const defaultColors = getThemeColors(themeName);

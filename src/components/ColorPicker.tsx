@@ -229,8 +229,6 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
   useEffect(() => {
     if (!open) setDragPos(null);
     if (!open) {
-      // Call global callback if set (for settings reopen) BEFORE unmounting
-      try { if ((window as any).__onColorPickerClose) (window as any).__onColorPickerClose(); } catch (e) {}
       // Then notify parent when the picker closes (this will unmount the color picker)
       try { onClose && onClose(); } catch (e) {}
     }
@@ -644,7 +642,7 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
 }
 
 // Programmatic helper: mount a fullscreen ColorPicker immediately
-export function OpenColorPicker(initial?: { value?: string; onChange?: (hex: string) => void; targetElement?: string }) {
+export function OpenColorPicker(initial?: { value?: string; onChange?: (hex: string) => void; targetElement?: string; onClose?: () => void }) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -658,6 +656,7 @@ export function OpenColorPicker(initial?: { value?: string; onChange?: (hex: str
       onChange={(hex) => { try { initial?.onChange?.(hex); } catch {} }}
       fullScreen
       autoOpen
+      onClose={initial?.onClose}
       targetElement={initial?.targetElement}
     />
   );

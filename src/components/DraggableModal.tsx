@@ -53,9 +53,14 @@ export default function DraggableModal({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState(() => 
-    (window as any).juicecut?.settings?.allowEditsWhenMenuOpen ?? true
-  );
+  const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState(() => {
+    try {
+      const value = window.localStorage.getItem('juicecut.settings.allowEditsWhenMenuOpen');
+      return value === null ? true : value === 'true';
+    } catch {
+      return true;
+    }
+  });
   const dragOffset = useRef({ x: 0, y: 0 });
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -112,9 +117,9 @@ export default function DraggableModal({
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     // Check if we should allow dragging on header buttons
-    const allowDraggableButtons = (window as any).juicecut?.settings?.draggableHeaderButtons ?? true;
+    const allowDraggableButtons = window.localStorage.getItem('juicecut.settings.draggableHeaderButtons') !== 'false';
     // Check if execute on drag is enabled
-    const executeOnDrag = (window as any).juicecut?.settings?.executeHeaderButtonsOnDrag ?? true;
+    const executeOnDrag = window.localStorage.getItem('juicecut.settings.executeHeaderButtonsOnDrag') !== 'false';
     
     // Check if clicking on a header button
     const minimizeBtn = target.closest('.modal-minimize-btn') as HTMLButtonElement | null;
