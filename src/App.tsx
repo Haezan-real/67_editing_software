@@ -622,7 +622,7 @@ function AppContent() {
     handleTrimLatter, handleTrimFormer, handleJoin, handleFadeChange,
     handleFadeDragStart, handleFadeDragEnd,
     handleStepEdge, handleRollApply,
-  } = useTimelineEditor({ mediaItems, setClips, setSelectedIds, history, snapshot });
+  } = useTimelineEditor({ clips, mediaItems, setClips, setSelectedIds, history, snapshot });
 
   const { exportVideo: handleExport } = useExportJob({ clips, mediaItems, totalFrames });
 

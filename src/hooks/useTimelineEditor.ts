@@ -7,6 +7,7 @@ type HistoryApi = {
 };
 
 interface TimelineEditorOptions {
+  clips: TimelineClip[];
   mediaItems: Map<string, MediaItem>;
   setClips: Dispatch<SetStateAction<TimelineClip[]>>;
   setSelectedIds: Dispatch<SetStateAction<string[]>>;
@@ -19,28 +20,31 @@ const TRACKS: Track[] = [
   { id: 'a1', type: 'audio', label: 'A1' },
 ];
 
-export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, history, snapshot }: TimelineEditorOptions) {
+export function useTimelineEditor({ clips, mediaItems, setClips, setSelectedIds, history, snapshot }: TimelineEditorOptions) {
   const fadeHistorySnapshotRef = useRef<unknown | null>(null);
+  const fadeChangedRef = useRef(false);
 
   const handleFadeDragStart = useCallback(() => {
     fadeHistorySnapshotRef.current = snapshot();
+    fadeChangedRef.current = false;
   }, [snapshot]);
 
   const handleFadeDragEnd = useCallback(() => {
-    if (fadeHistorySnapshotRef.current !== null) {
+    if (fadeHistorySnapshotRef.current !== null && fadeChangedRef.current) {
       history.push(fadeHistorySnapshotRef.current);
-      fadeHistorySnapshotRef.current = null;
     }
+    fadeHistorySnapshotRef.current = null;
+    fadeChangedRef.current = false;
   }, [history]);
 
   const handleDropMedia = useCallback((mediaId: string, track: number, startFrame: number) => {
-    history.push(snapshot());
     const media = mediaItems.get(mediaId);
     if (!media) return;
     const trackDefinition = TRACKS[track];
     if (!trackDefinition) return;
     if (trackDefinition.type === 'video' && media.type === 'audio') return;
     if (trackDefinition.type === 'audio' && (media.type === 'video' || media.type === 'image')) return;
+    history.push(snapshot());
     const endFrame = startFrame + media.duration;
     const newClip: TimelineClip = {
       id: generateId(), mediaId, track, startFrame, endFrame,
@@ -58,6 +62,15 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [setSelectedIds]);
 
   const handleNudge = useCallback((ids: string[], delta: number) => {
+    const movers = new Set(ids);
+    const next = clips.map(clip => {
+      if (!movers.has(clip.id)) return clip;
+      const newStart = Math.max(0, clip.startFrame + delta);
+      const length = clip.endFrame - clip.startFrame;
+      const wouldOverlap = clips.some(other => !movers.has(other.id) && other.track === clip.track && newStart < other.endFrame && newStart + length > other.startFrame);
+      return wouldOverlap ? clip : { ...clip, startFrame: newStart, endFrame: newStart + length };
+    });
+    if (next.every((clip, index) => clip === clips[index])) return;
     history.push(snapshot());
     setClips(previous => {
       const movers = new Set(ids);
@@ -72,6 +85,8 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [history, setClips, snapshot]);
 
   const handleSplitClip = useCallback((clipId: string, frame: number) => {
+    const clip = clips.find(item => item.id === clipId);
+    if (!clip || frame <= clip.startFrame || frame >= clip.endFrame) return;
     history.push(snapshot());
     setClips(previous => {
       const clip = previous.find(item => item.id === clipId);
@@ -84,6 +99,8 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [history, setClips, snapshot]);
 
   const handleTrimLatter = useCallback((clipId: string, frame: number, ripple: boolean) => {
+    const clip = clips.find(item => item.id === clipId);
+    if (!clip || frame <= clip.startFrame) return;
     history.push(snapshot());
     setClips(previous => {
       const clip = previous.find(item => item.id === clipId);
@@ -99,6 +116,8 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [history, setClips, snapshot]);
 
   const handleTrimFormer = useCallback((clipId: string, frame: number, ripple: boolean) => {
+    const clip = clips.find(item => item.id === clipId);
+    if (!clip || frame >= clip.endFrame) return;
     history.push(snapshot());
     setClips(previous => {
       const clip = previous.find(item => item.id === clipId);
@@ -113,6 +132,9 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [history, setClips, snapshot]);
 
   const handleJoin = useCallback((clipAId: string, clipBId: string) => {
+    const first = clips.find(item => item.id === clipAId);
+    const second = clips.find(item => item.id === clipBId);
+    if (!first || !second || first.mediaId !== second.mediaId) return;
     history.push(snapshot());
     setClips(previous => {
       const first = previous.find(item => item.id === clipAId);
@@ -124,6 +146,12 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [history, setClips, snapshot]);
 
   const handleFadeChange = useCallback((clipId: string, side: 'in' | 'out', frames: number) => {
+    const clip = clips.find(item => item.id === clipId);
+    if (!clip) return;
+    const maxFade = Math.floor((clip.endFrame - clip.startFrame) / 2);
+    const nextFade = Math.min(Math.max(0, frames), maxFade);
+    if (clip.fades[side] === nextFade) return;
+    fadeChangedRef.current = true;
     setClips(previous => previous.map(clip => {
       if (clip.id !== clipId) return clip;
       const maxFade = Math.floor((clip.endFrame - clip.startFrame) / 2);
@@ -132,6 +160,8 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [setClips]);
 
   const handleStepEdge = useCallback((clipId: string | null, cutBetween: [string, string] | null, direction: number, ripple: boolean) => {
+    const hasTarget = clipId ? clips.some(clip => clip.id === clipId) : Boolean(cutBetween && cutBetween.every(id => clips.some(clip => clip.id === id)));
+    if (!hasTarget || direction === 0) return;
     history.push(snapshot());
     setClips(previous => {
       if (cutBetween) {
@@ -150,9 +180,11 @@ export function useTimelineEditor({ mediaItems, setClips, setSelectedIds, histor
   }, [history, setClips, snapshot]);
 
   const handleRollApply = useCallback((clipId: string, newSrcIn: number, newSrcOut: number) => {
+    const clip = clips.find(item => item.id === clipId);
+    if (!clip || (clip.srcIn === newSrcIn && clip.srcOut === newSrcOut)) return;
     history.push(snapshot());
     setClips(previous => previous.map(clip => clip.id === clipId ? { ...clip, srcIn: newSrcIn, srcOut: newSrcOut } : clip));
-  }, [history, setClips, snapshot]);
+  }, [clips, history, setClips, snapshot]);
 
   return { handleDropMedia, handleSelectClip, handleNudge, handleSplitClip, handleTrimLatter, handleTrimFormer, handleJoin, handleFadeChange, handleFadeDragStart, handleFadeDragEnd, handleStepEdge, handleRollApply };
 }
