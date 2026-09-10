@@ -164,7 +164,11 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
   const dragStateRef = useRef<{ startX: number; startY: number; startLeft: number; startTop: number } | null>(null);
   const skipBlurApplyRef = useRef(false);
   const hexRef = useRef(hex);
+  const onChangeRef = useRef(onChange);
+  const isInputFocusedRef = useRef(isInputFocused);
   useEffect(() => { hexRef.current = hex; }, [hex]);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => { isInputFocusedRef.current = isInputFocused; }, [isInputFocused]);
 
   useEffect(() => {
     setHex(value || '#000000');
@@ -319,8 +323,8 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
       // update preview hex
       const previewHex = hslToHex(angle, s, lightRef.current/100);
       setHex(previewHex);
-      if (!isInputFocused) {
-        onChange(previewHex);
+      if (!isInputFocusedRef.current) {
+        onChangeRef.current(previewHex);
       }
     };
     const onPointerMove = (e: PointerEvent) => {
@@ -331,8 +335,8 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
       if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
     };
     const onPointerDown = (e: PointerEvent) => {
-      if (isInputFocused) {
-        onChange(hex);
+      if (isInputFocusedRef.current) {
+        onChangeRef.current(hexRef.current);
         setIsInputFocused(false);
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
