@@ -366,138 +366,60 @@ export default function TorusMenu({
 
   useEffect(() => {
     if (!interactive) return;
-    const timer = setTimeout(() => {
-      // Only attach scroll handler if scrolling is not disabled
-      if (disableScrolling === 'none') {
-        // Don't attach any scroll handler - let scroll propagate naturally
+    let mousePosition: { x: number; y: number } | null = null;
+    const scrollHandler = (e: Event) => {
+      if (disableScrolling === 'none' || !ref.current) return;
+      const position = mousePosition;
+      if (!position) return onClose();
+      const el = document.elementFromPoint(position.x, position.y);
+      if (disableScrolling === 'annular sectors only' && el?.closest('.torus-sector')) {
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
-      
-      const scrollHandler = (e: Event) => {
-        if (!ref.current) return;
-        
-        // Get mouse position
-        const mouseX = (window as any).mouseX;
-        const mouseY = (window as any).mouseY;
-        
-        // If we don't know mouse position, close the menu
-        if (mouseX == null || mouseY == null) {
-          onClose();
-          return;
-        }
-        
-        // Use elementFromPoint to detect what's under the mouse
-        const el = document.elementFromPoint(mouseX, mouseY);
-        
-        if (disableScrolling === 'annular sectors only') {
-          // If mouse is over a sector element, block scroll
-          if (el?.closest('.torus-sector')) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
-          // If mouse is inside the overlay but not on a sector (hollow center), allow scroll
-          if (el && ref.current.contains(el)) {
-            return;
-          }
-          // Otherwise close
-          onClose();
-          return;
-        }
-        
+      if (el && ref.current.contains(el)) {
         if (disableScrolling === 'whole torus menu') {
-          // If mouse is anywhere in the overlay, block scroll
-          if (el && ref.current.contains(el)) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
+          e.preventDefault();
+          e.stopPropagation();
         }
-        
-        // Outside menu: close
-        onClose();
-      };
-      window.addEventListener('scroll', scrollHandler, true);
-
-            let clickHandler: ((e: MouseEvent) => void) | null = null;
-      let pointerDownHandler: ((e: PointerEvent) => void) | null = null;
-      if (closeOnBackgroundClick) {
-        clickHandler = (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('.torus-toggle-btn')) return;
-          if (target.closest('.torus-center-btn')) return;
-          
-          if (disableScrolling === 'annular sectors only') {
-            if (!target.closest('.torus-sector')) {
-              onClose();
-            }
-            return;
-          }
-          
-          // 🔥 FIX: Check if click is inside the circular hitbox (radius = outerR)
-          // Calculate distance from click to menu center
-          const rect = ref.current?.getBoundingClientRect();
-          if (rect) {
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
-            const centerX = cx;
-            const centerY = cy;
-            const distance = Math.sqrt(Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2));
-            
-            // If click is outside the circular hitbox, close the menu
-            if (distance > outerR) {
-              onClose();
-            }
-          }
-        };
-        window.addEventListener('mousedown', clickHandler);
-
-        // Also handle pointerdown for splitters and other pointer-based interactions
-                pointerDownHandler = (e: PointerEvent) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('.torus-toggle-btn')) return;
-          if (target.closest('.torus-center-btn')) return;
-          
-          if (disableScrolling === 'annular sectors only') {
-            if (!target.closest('.torus-sector')) {
-              onClose();
-            }
-            return;
-          }
-          
-          // 🔥 FIX: Same circular hitbox check
-          const rect = ref.current?.getBoundingClientRect();
-          if (rect) {
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
-            const centerX = cx;
-            const centerY = cy;
-            const distance = Math.sqrt(Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2));
-            
-            if (distance > outerR) {
-              onClose();
-            }
-          }
-        };
-        window.addEventListener('pointerdown', pointerDownHandler);
+        return;
       }
+      onClose();
+    };
+    const mouseMoveHandler = (e: MouseEvent) => {
+      mousePosition = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('scroll', scrollHandler, true);
+    window.addEventListener('mousemove', mouseMoveHandler, true);
 
-      // Store mouse position globally for elementFromPoint access
-      const mouseMoveHandler = (e: MouseEvent) => {
-        (window as any).mouseX = e.clientX;
-        (window as any).mouseY = e.clientY;
-      };
-      window.addEventListener('mousemove', mouseMoveHandler, true);
+    let clickHandler: ((e: MouseEvent) => void) | null = null;
+    let pointerDownHandler: ((e: PointerEvent) => void) | null = null;
+    const handleOutsidePointer = (e: MouseEvent | PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.torus-toggle-btn') || target.closest('.torus-center-btn')) return;
+      if (disableScrolling === 'annular sectors only') {
+        if (!target.closest('.torus-sector')) onClose();
+        return;
+      }
+      const rect = ref.current?.getBoundingClientRect();
+      if (!rect) return;
+      const distance = Math.hypot(e.clientX - rect.left - cx, e.clientY - rect.top - cy);
+      if (distance > outerR) onClose();
+    };
+    if (closeOnBackgroundClick) {
+      clickHandler = handleOutsidePointer;
+      pointerDownHandler = handleOutsidePointer;
+      window.addEventListener('mousedown', clickHandler);
+      window.addEventListener('pointerdown', pointerDownHandler);
+    }
 
-      return () => {
-        window.removeEventListener('scroll', scrollHandler, true);
-        if (clickHandler) window.removeEventListener('mousedown', clickHandler);
-        if (pointerDownHandler) window.removeEventListener('pointerdown', pointerDownHandler);
-        window.removeEventListener('mousemove', mouseMoveHandler, true);
-      };
-    }, 10);
-    return () => clearTimeout(timer);
-  }, [onClose, interactive, closeOnBackgroundClick, disableScrolling, outerR, innerR, cx, cy]);
+    return () => {
+      window.removeEventListener('scroll', scrollHandler, true);
+      window.removeEventListener('mousemove', mouseMoveHandler, true);
+      if (clickHandler) window.removeEventListener('mousedown', clickHandler);
+      if (pointerDownHandler) window.removeEventListener('pointerdown', pointerDownHandler);
+    };
+  }, [onClose, interactive, closeOnBackgroundClick, disableScrolling, outerR, cx, cy]);
 
   // Animation helpers
   const durationSec = duration / 1000;
