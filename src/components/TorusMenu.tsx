@@ -6,9 +6,7 @@ import { useEffect, useState, useRef, ReactNode } from 'react';
 import { Scissors, ChevronLeft, ChevronRight, Move } from 'lucide-react';
 import { getSavedSizeGraph, SizeGraphPoint } from './graph';
 import { evaluateGraphWithHandles, getSavedSegmentHandleValues } from '../utils/torusGraphEasing';
-import bigWoosh from '../sounds/SFX/big_woosh.wav';
-import smallWoosh from '../sounds/SFX/small_woosh.wav';
-import thock from '../sounds/sfx/thock.wav';
+import { acquireAudioService } from '../services/audioService';
 
 const thock_volume = 0.7
 const bigWoosh_volume = 0.7
@@ -164,69 +162,24 @@ export default function TorusMenu({
   const easing = easingProp ?? getSavedEasing();
   const delay = delayProp ?? getSavedDelay();
 
-  // 🪗SOUND EFFECTS: Web Audio API for polyphonic playback
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
+  // Audio is shared across menu instances and released when the last menu closes.
+  const audioServiceRef = useRef<ReturnType<typeof acquireAudioService> | null>(null);
   const [audioReady, setAudioReady] = useState(false);
-  
-  // Initialize AudioContext and load sounds
+
   useEffect(() => {
-    const initAudio = async () => {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = ctx;
-      
-      // Load audio files
-      const loadSound = async (url: string, key: string) => {
-        const response = await fetch(url);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        audioBuffersRef.current.set(key, audioBuffer);
-      };
-      
-      try {
-        await Promise.all([
-          loadSound(bigWoosh, 'bigWoosh'),
-          loadSound(smallWoosh, 'smallWoosh'),
-          loadSound(thock, 'thock'),
-        ]);
-      } finally {
-        setAudioReady(true);
-      }
-    };
-    
-    initAudio();
-    
+    const service = acquireAudioService();
+    audioServiceRef.current = service;
+    service.ready.then(setAudioReady);
     return () => {
-      // 🔥 FIX: Don't close the AudioContext on unmount!
-      // Closing it kills sounds that are still playing (like thock on click).
-      // The AudioContext should live for the lifetime of the app.
-      // audioContextRef.current?.close();
+      service.release();
+      audioServiceRef.current = null;
     };
   }, []);
-  
-  // Helper function to play a sound
+
   const playSound = (key: string, volume: number = 1.0) => {
-    const ctx = audioContextRef.current;
-    const buffer = audioBuffersRef.current.get(key);
-    
-    if (!ctx || !buffer) return;
-    
-    // Resume context if suspended (browser autoplay policy)
-    if (ctx.state === 'suspended') {
-      ctx.resume();
+    if (key === 'bigWoosh' || key === 'smallWoosh' || key === 'thock') {
+      audioServiceRef.current?.playSound(key, volume);
     }
-    
-    // Create a new source node for each playback (allows overlapping)
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    
-    const gainNode = ctx.createGain();
-    gainNode.gain.value = volume;
-    
-    source.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    
-    source.start(0);
   };
 
   
