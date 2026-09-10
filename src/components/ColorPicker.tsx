@@ -323,7 +323,13 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
         onChange(previewHex);
       }
     };
-    const onPointerUp = () => { draggingRef.current = false; canvas.releasePointerCapture && canvas.releasePointerCapture((canvas as any).pointerId); };
+    const onPointerMove = (e: PointerEvent) => {
+      if (draggingRef.current) onPointer(e);
+    };
+    const onPointerUp = (e: PointerEvent) => {
+      draggingRef.current = false;
+      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    };
     const onPointerDown = (e: PointerEvent) => {
       if (isInputFocused) {
         onChange(hex);
@@ -348,15 +354,15 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
       // if (r > radius) return; // Removed this check
 
       draggingRef.current = true;
-      (e.target as Element).setPointerCapture && (e.target as Element).setPointerCapture((e as any).pointerId);
+      canvas.setPointerCapture(e.pointerId);
       onPointer(e);
     };
     canvas.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', (e) => { if (draggingRef.current) onPointer(e as PointerEvent); });
+    window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     return () => {
       canvas.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', (e) => { if (draggingRef.current) onPointer(e as PointerEvent); });
+      window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
   }, []);
