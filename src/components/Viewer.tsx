@@ -1,6 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useMediaPlayback } from '../hooks/useMediaPlayback';
 import type { MediaItem, TimelineClip } from '../types';
-import { FPS } from '../types';
 
 interface Props {
   clips: TimelineClip[];
@@ -15,95 +14,7 @@ export default function Viewer({
   clips, mediaItems, playhead, playing, totalFrames,
   onExport
 }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const drawFrame = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const videoClips = clips
-      .filter(c => (c.type === 'video' || c.type === 'image') && c.track === 0)
-      .filter(c => playhead >= c.startFrame && playhead < c.endFrame)
-      .sort((a, b) => a.startFrame - b.startFrame);
-
-    if (videoClips.length === 0) {
-      return;
-    }
-
-    const clip = videoClips[0];
-    const media = mediaItems.get(clip.mediaId);
-    if (!media) return;
-
-    if (media.type === 'image') {
-      const img = new window.Image();
-      img.src = media.src;
-      if (img.complete) {
-        const ar = img.naturalWidth / img.naturalHeight;
-        const cAr = canvas.width / canvas.height;
-        let w = canvas.width, h = canvas.height, x = 0, y = 0;
-        if (ar > cAr) { h = canvas.width / ar; y = (canvas.height - h) / 2; }
-        else { w = canvas.height * ar; x = (canvas.width - w) / 2; }
-        ctx.drawImage(img, x, y, w, h);
-      }
-    }
-  }, [clips, mediaItems, playhead]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const videoClip = clips
-      .filter(c => c.type === 'video' && c.track === 0 && playhead >= c.startFrame && playhead < c.endFrame)[0];
-
-    if (!videoClip) { drawFrame(); return; }
-
-    const media = mediaItems.get(videoClip.mediaId);
-    if (!media) return;
-
-    const videoEl = document.getElementById(`vid-${media.id}`) as HTMLVideoElement | null;
-    if (!videoEl) return;
-
-    const relativeFrame = playhead - videoClip.startFrame + videoClip.srcIn;
-    const targetTime = relativeFrame / FPS;
-    if (Math.abs(videoEl.currentTime - targetTime) > 0.05) {
-      videoEl.currentTime = targetTime;
-    }
-
-    let alpha = 1;
-    const clipLen = videoClip.endFrame - videoClip.startFrame;
-    const relPos = playhead - videoClip.startFrame;
-    if (relPos < videoClip.fades.in) alpha = relPos / videoClip.fades.in;
-    if (relPos > clipLen - videoClip.fades.out) alpha = (clipLen - relPos) / videoClip.fades.out;
-    alpha = Math.max(0, Math.min(1, alpha));
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.globalAlpha = alpha;
-      const ar = videoEl.videoWidth / videoEl.videoHeight || 16 / 9;
-      const cAr = canvas.width / canvas.height;
-      let w = canvas.width, h = canvas.height, x = 0, y = 0;
-      if (ar > cAr) { h = canvas.width / ar; y = (canvas.height - h) / 2; }
-      else { w = canvas.height * ar; x = (canvas.width - w) / 2; }
-      ctx.drawImage(videoEl, x, y, w, h);
-      ctx.globalAlpha = 1;
-    };
-
-    if (videoEl.readyState >= 2) draw();
-    else videoEl.addEventListener('loadeddata', draw, { once: true });
-  }, [playhead, clips, mediaItems, drawFrame]);
-
-  // Redraw when --video-bg CSS variable changes (e.g. from color picker)
-  useEffect(() => {
-    const observer = new MutationObserver(() => drawFrame());
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
-    return () => observer.disconnect();
-  }, [drawFrame]);
+  const canvasRef = useMediaPlayback(clips, mediaItems, playhead, playing);
 
   return (
     <div className="viewer">
