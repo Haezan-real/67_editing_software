@@ -1,4 +1,5 @@
 ﻿import { SETTINGS_CHANGED_EVENT, dispatchSettingsChanged, getSettingsChangedDetail } from '../state/settingsEvents';
+import { useEffect } from 'react';
 
 /**
  * Centralized keyboard shortcut management.
@@ -27,16 +28,30 @@ let cache: Record<ShortcutAction, string[][]> | null = null;
 
 // Track globally pressed keys (for wheel-event shortcut matching with non-modifier keys)
 const pressedKeys = new Set<string>();
-if (typeof window !== "undefined") {
-  window.addEventListener("keydown", (e: KeyboardEvent) => {
-    pressedKeys.add(e.key.toLowerCase());
-  });
-  window.addEventListener("keyup", (e: KeyboardEvent) => {
-    pressedKeys.delete(e.key.toLowerCase());
-  });
-  window.addEventListener("blur", () => {
-    pressedKeys.clear();
-  });
+
+export function useShortcutLifecycle(): void {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => pressedKeys.add(event.key.toLowerCase());
+    const handleKeyUp = (event: KeyboardEvent) => pressedKeys.delete(event.key.toLowerCase());
+    const handleBlur = () => pressedKeys.clear();
+    const handleSettingsChange = (event: Event) => {
+      const detail = getSettingsChangedDetail(event);
+      if (detail?.key === 'keyboardShortcuts' && typeof detail.value === 'object' && detail.value !== null) {
+        cache = detail.value as Record<ShortcutAction, string[][]>;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener(SETTINGS_CHANGED_EVENT, handleSettingsChange);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener(SETTINGS_CHANGED_EVENT, handleSettingsChange);
+      pressedKeys.clear();
+    };
+  }, []);
 }
 
 function load(): Record<ShortcutAction, string[][]> {
@@ -107,15 +122,6 @@ export function formatShortcutLabel(action: ShortcutAction): string {
     .filter(combo => combo.length > 0)
     .map(formatShortcutCombo)
     .join(", ");
-}
-
-if (typeof window !== "undefined") {
-  window.addEventListener(SETTINGS_CHANGED_EVENT, ((e: Event) => {
-    const detail = getSettingsChangedDetail(e);
-    if (detail?.key === 'keyboardShortcuts' && typeof detail.value === 'object' && detail.value !== null) {
-      cache = detail.value as Record<ShortcutAction, string[][]>;
-    }
-  }) as EventListener);
 }
 
 function keysMatchCombo(combo: string[], e: KeyboardEvent): boolean {

@@ -15,7 +15,7 @@ import RollDialog from './components/RollDialog';
 import ViewerControls from './components/ViewerControls';
 import { OpenSettings } from './components/Settings';
 import { OpenShaderSelector } from './components/shader_selector';
-import { isShortcutMatch } from './components/shortcuts';
+import { isShortcutMatch, useShortcutLifecycle } from './components/shortcuts';
 import { parentMap, StylesModal, applyThemeToDocument } from './components/styles';
 import Splitter from './components/Splitter';
 import DraggableModal from './components/DraggableModal';
@@ -122,6 +122,7 @@ function revokeMediaResources(items: Iterable<Pick<MediaItem, 'src'>>): void {
   }
 }
 function AppContent() {
+  useShortcutLifecycle();
   const history = useHistory();
   const multipleMenusToast = new Toast('opening multiple <br/> menus is disabled!');
   const [mediaItems, setMediaItems] = useState<Map<string, MediaItem>>(new Map());
