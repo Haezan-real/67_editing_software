@@ -105,9 +105,13 @@ export function joinClips(clips: TimelineClip[], firstId: string, secondId: stri
   const first = findClip(clips, firstId);
   const second = findClip(clips, secondId);
   if (!first || !second) return failure('clip-not-found', 'Both clips to join must exist.');
-  if (first.id === second.id || first.track !== second.track || first.mediaId !== second.mediaId || first.endFrame !== second.startFrame || first.srcOut !== second.srcIn) {
-    return failure('not-adjacent', 'Only adjacent clips with continuous source ranges can be joined.');
-  }
+  if (first.id === second.id) return failure('not-adjacent', 'A clip cannot be joined with itself.');
+  if (!isValidClip(first) || !isValidClip(second)) return failure('invalid-source-range', 'Both clips must have valid frame and source ranges.');
+  if (first.track !== second.track) return failure('not-adjacent', 'Clips must be on the same track.');
+  if (first.mediaId !== second.mediaId) return failure('not-adjacent', 'Clips must reference the same media item.');
+  if (first.startFrame >= second.startFrame) return failure('not-adjacent', 'The first clip must come before the second clip.');
+  if (first.endFrame !== second.startFrame) return failure('not-adjacent', 'Clips must be directly adjacent in the timeline.');
+  if (first.srcOut !== second.srcIn) return failure('not-adjacent', 'Clip source ranges must be continuous.');
   const merged = { ...first, endFrame: second.endFrame, srcOut: second.srcOut, fades: { in: first.fades.in, out: second.fades.out } };
   return validateResult(clips.filter(clip => clip.id !== firstId && clip.id !== secondId).concat(merged));
 }
