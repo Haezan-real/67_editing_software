@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import FormulaPlayneedle from './FormulaPlayneedle';
 import DraggableModal from './DraggableModal';
 import { showToast } from './Toast';
 import { Slider } from './Adjustables';
 import { modalManager } from '../state/modalManager';
-import { RotateCcw } from 'lucide-react';
+import { dispatchSettingsChanged } from '../state/settingsEvents';
 
 // Playneedle Editor modal caps
 const EDITOR_MAX_WIDTH = '480px';
@@ -25,27 +25,6 @@ const DEFAULT_VALUES = {
   pnWidth: 20,
 } as const;
 
-const MAX_VALUES = {
-  pnT: 0.5,
-  pnJ: 0.25,
-  pnK: 1000,
-  pnS: 50,
-  pnVo: 1,
-  pnHb: 1,
-  pnHr: 1,
-  pnWidth: 100,
-} as const;
-
-const MIN_VALUES = {
-  pnT: 0,
-  pnJ: -0.05,
-  pnK: 10,
-  pnS: 10,
-  pnVo: 0,
-  pnHb: 0.5,
-  pnHr: 0,
-  pnWidth: 0,
-} as const;
 
 function getSavedPnT(): number {
   try {

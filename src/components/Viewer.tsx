@@ -6,12 +6,12 @@ interface Props {
   mediaItems: Map<string, MediaItem>;
   playhead: number;
   playing: boolean;
-  totalFrames: number;
+  totalFrames?: number;
   onExport: () => void;
 }
 
 export default function Viewer({
-  clips, mediaItems, playhead, playing, totalFrames,
+  clips, mediaItems, playhead, playing,
   onExport
 }: Props) {
   const canvasRef = useMediaPlayback(clips, mediaItems, playhead, playing);

@@ -1,7 +1,7 @@
 //TorusMenuEditor.tsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import GraphEditor, { DEFAULT_TORUS_SIZE_GRAPH, getSavedSizeGraph, SizeGraphPoint, GraphConfig, DEFAULT_GRAPH_CONFIG } from './graph';
+import GraphEditor, { getSavedSizeGraph, SizeGraphPoint, GraphConfig, DEFAULT_GRAPH_CONFIG } from './graph';
 import { getSavedSegmentHandleValues, saveSegmentHandleValues } from '../utils/torusGraphEasing';
 import DraggableModal from './DraggableModal';
 import { showToast } from './Toast';
@@ -9,7 +9,7 @@ import { modalManager } from '../state/modalManager';
 import TorusMenu from './TorusMenu';
 import { Slider } from './Adjustables';
 import { RotateCcw, Plus } from 'lucide-react';
-import { isShortcutMatch, getShortcutKeys as scGetKeys, updateShortcuts as scUpdate, resetDefaultShortcuts as scReset, type ShortcutAction, SHORTCUT_LABELS } from './shortcuts';
+import { isShortcutMatch, getShortcutKeys as scGetKeys, updateShortcuts as scUpdate, resetDefaultShortcuts as scReset, SHORTCUT_LABELS } from './shortcuts';
 import { SETTINGS_CHANGED_EVENT } from '../state/settingsEvents';
 
 // Torus Menu Editor modal dimensions
@@ -68,14 +68,6 @@ function getSavedDuration(): number {
     if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 0 && n <= 2000) return n; }
   } catch {}
   return 300;
-}
-
-function getSavedEasing(): number {
-  try {
-    const v = window.localStorage.getItem('juicecut.settings.torusEasing');
-    if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 0 && n <= 100) return n; }
-  } catch {}
-  return 50;
 }
 
 function getSavedDelay(): number {

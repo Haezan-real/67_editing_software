@@ -15,7 +15,6 @@ export interface SensitivityState {
 const DEFAULT_SENSITIVITY = 1;
 const MIN_SENSITIVITY = 0.01;
 const MAX_SENSITIVITY = 10;
-const SCROLL_SENSITIVITY_STEP = 0.1;
 const DISPLAY_DURATION_MS = 1500;
 
 /**

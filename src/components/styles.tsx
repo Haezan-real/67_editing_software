@@ -137,7 +137,7 @@ export function StylesContent({ themeName, setShowStyle, setStylePage }: {
     const colorField = colorFields.find(c => c.varName === varName);
     const colorLabel = colorField ? colorField.label : 'Color';
     setShowStyle(false);
-    const cleanup = OpenColorPicker({
+    OpenColorPicker({
       value: currentValue,
       onChange: (hex: string) => updateColor(varName, hex),
       targetElement: colorLabel,
@@ -180,9 +180,6 @@ export function StylesModal({ showStyle, setShowStyle, stylePage, setStylePage }
   const [activeTheme, setActiveTheme] = useState<string>(() => {
     try { return window.localStorage.getItem('juicecut.styles.activeTheme') || 'og-dark'; } catch { return 'og-dark'; }
   });
-  const [themePage, setThemePage] = useState<string | null>(stylePage);
-
-  useEffect(() => { setThemePage(stylePage); }, [stylePage]);
   useEffect(() => { try { window.localStorage.setItem('juicecut.styles.activeTheme', activeTheme); } catch {} }, [activeTheme]);
 
   if (!showStyle) return null;
@@ -195,7 +192,7 @@ export function StylesModal({ showStyle, setShowStyle, stylePage, setStylePage }
       style={{ width: MODAL_WIDTH, height: MODAL_HEIGHT, minHeight: MODAL_HEIGHT, maxHeight: MODAL_HEIGHT, overflow: 'hidden' }}
       persistenceKey="styles"
       pageState={{ stylePage, activeTheme }}
-      onSavePageState={(state) => {}}
+      onSavePageState={() => {}}
       onRestorePageState={(state) => {
         if (state) {
           if (state.stylePage !== undefined) setStylePage(state.stylePage);
@@ -235,7 +232,7 @@ export function StylesModal({ showStyle, setShowStyle, stylePage, setStylePage }
                 if (!childItem) return null;
                 const isActive = activeTheme === childItem.id;
                 return (
-                  <button key={childItem.id} onClick={() => { if (childItem.type === 'folder') { setStylePage(childItem.id); } else { if (activeTheme === childItem.id) { setStylePage(childItem.id); setThemePage(childItem.id); } else { setActiveTheme(childItem.id); applyThemeToDocument(childItem.id); } } }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: isActive ? 'rgba(52, 211, 153, 0.2)' : 'transparent', border: isActive ? '1px solid var(--accent-green)' : '1px solid transparent', borderRadius: 'var(--radius-md)', padding: '12px 16px', cursor: 'pointer', color: isActive ? 'var(--accent-green)' : 'var(--text-secondary)', width: 90, height: 100, flexShrink: 0 }} onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'; }} onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                  <button key={childItem.id} onClick={() => { if (childItem.type === 'folder') { setStylePage(childItem.id); } else { if (activeTheme === childItem.id) { setStylePage(childItem.id); } else { setActiveTheme(childItem.id); applyThemeToDocument(childItem.id); } } }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: isActive ? 'rgba(52, 211, 153, 0.2)' : 'transparent', border: isActive ? '1px solid var(--accent-green)' : '1px solid transparent', borderRadius: 'var(--radius-md)', padding: '12px 16px', cursor: 'pointer', color: isActive ? 'var(--accent-green)' : 'var(--text-secondary)', width: 90, height: 100, flexShrink: 0 }} onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'; }} onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={isActive ? 'var(--accent-green)' : 'var(--text-secondary)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: isActive ? 1 : 0.7, flexShrink: 0 }}>
                       <path d={childItem.icon}></path>
                     </svg>

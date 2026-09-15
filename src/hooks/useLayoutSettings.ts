@@ -38,7 +38,7 @@ export function useLayoutSettings() {
   const [leftWidthPct, setLeftWidthPct] = useState(() =>
     readNumber('juicecut.layout.leftWidthPct', DEFAULT_LEFT_WIDTH, 5, 50),
   );
-  const [leftCollapsed, setLeftCollapsed] = useState(() =>
+  const [leftCollapsed] = useState(() =>
     readBoolean('juicecut.layout.leftCollapsed', false),
   );
   const [timelineHeightPct, setTimelineHeightPct] = useState(() =>

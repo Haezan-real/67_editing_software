@@ -3,8 +3,9 @@ import type { MediaItem, TimelineClip } from '../types';
 import { FPS } from '../types';
 
 function drawMedia(ctx: CanvasRenderingContext2D, source: CanvasImageSource, width: number, height: number, alpha: number) {
-  const sourceWidth = 'videoWidth' in source ? source.videoWidth : source instanceof HTMLImageElement ? source.naturalWidth : source.width;
-  const sourceHeight = 'videoHeight' in source ? source.videoHeight : source instanceof HTMLImageElement ? source.naturalHeight : source.height;
+  const measurable = source as CanvasImageSource & { videoWidth?: number; videoHeight?: number; naturalWidth?: number; naturalHeight?: number; width?: number; height?: number };
+  const sourceWidth = measurable.videoWidth ?? measurable.naturalWidth ?? measurable.width ?? 0;
+  const sourceHeight = measurable.videoHeight ?? measurable.naturalHeight ?? measurable.height ?? 0;
   if (!sourceWidth || !sourceHeight) return;
   const sourceRatio = sourceWidth / sourceHeight;
   const canvasRatio = width / height;

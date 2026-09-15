@@ -14,7 +14,6 @@ import { useSettings } from '../state/settingsStore';
 // Stretch factors for the playneedle icon
 const PLAYNEEDLE_ICON_HORIZONTAL_STRETCH_FACTOR = 0.4; // default 0.4
 const PLAYNEEDLE_ICON_VERTICAL_STRETCH_FACTOR = 3; // default 3
-const PLAYNEEDLE_ICON_Y_OFFSET_PX = 3; //bullshit variable, not used
 
 // Settings modal dimensions
 const SETTINGS_MODAL_WIDTH = '480px'; //default 480px
@@ -83,8 +82,8 @@ function SettingsCategory({ title, children }: { title: string; children: React.
   );
 }
 
-function SliderSetting({ label, value, min, max, step, onChange, onReset, formatValue, logScale }: {
-  label: React.ReactNode; value: number; min: number; max: number; step: number;
+function SliderSetting({ label, value, min, max, onChange, onReset, formatValue, logScale }: {
+  label: React.ReactNode; value: number; min: number; max: number; step?: number;
   onChange: (v: number) => void; onReset: () => void; formatValue?: (v: number) => string; logScale?: boolean;
 }) {
   const defaultFormat = (v: number) => v.toFixed(3);
@@ -136,13 +135,9 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
     scrollZoomSmoothness, setScrollZoomSmoothness, viewerControlsType, setViewerControlsType,
     timecodePanel, setTimecodePanel, torusScrollingDisabled, setTorusScrollingDisabled,
     elevatedPanelDarken, setElevatedPanelDarken, elevatedPanelBlur, setElevatedPanelBlur,
-    pnT, setPlayneedle_t: setPnT, pnJ, setPlayneedle_j: setPnJ, pnK, setPlayneedle_k: setPnK,
     draggableHeaderButtons, setDraggableHeaderButtons,
     allowMultipleMenus, setAllowMultipleMenus, allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen,
     executeHeaderButtonsOnDrag, setExecuteHeaderButtonsOnDrag,
-    pnS, setPlayneedle_s: setPnS, pnVo, setPlayneedle_v_o: setPnVo,
-    pnHb, setPlayneedle_h_b: setPnHb, pnHr, setPlayneedle_h_r: setPnHr,
-    playneedleIconHorizontalStretch, setPlayneedleIconHorizontalStretch,
     colorTransitionDuration, setColorTransitionDuration,
   } = useSettings();
   // Toggle Switch component for cleaner rendering
@@ -159,15 +154,11 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
     );
   }
   
-  const [requireDragHover, setRequireDragHover] = useState(false);
 
   const [shortcuts, setShortcuts] = useState<Record<ShortcutAction, string[][]>>(loadAllShortcuts);
   const [editingChip, setEditingChip] = useState<{ action: ShortcutAction; index: number } | null>(null);
   const chipRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const SCROLL_AMOUNT_POWER = 3.355;
-  const scrollAmountToSlider = (value: number) => { if (value <= 1) return 0; if (value >= 400) return 1000; return Math.round(1000 * Math.pow((value - 1) / 399, 1 / SCROLL_AMOUNT_POWER)); };
-  const sliderToScrollAmount = (sv: number) => { return Math.round(1 + 399 * Math.pow(Math.max(0, Math.min(1, sv / 1000)), SCROLL_AMOUNT_POWER)); };
 
   useEffect(() => {
     if (initialScroll != null && panelRef.current) {
@@ -199,7 +190,7 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
       style={{ width: SETTINGS_MODAL_WIDTH, height: SETTINGS_MODAL_HEIGHT, minHeight: SETTINGS_MODAL_MIN_HEIGHT, maxHeight: SETTINGS_MODAL_MAX_HEIGHT, overflow: 'hidden' }}
       persistenceKey="settings"
       pageState={activeTab}
-      onSavePageState={(state) => {}}
+      onSavePageState={() => {}}
       onRestorePageState={(state) => {
         if (state && TAB_NAMES[state as SettingsTab]) {
           setActiveTab(state as SettingsTab);

@@ -19,7 +19,6 @@ import { isShortcutMatch, useShortcutLifecycle } from './components/shortcuts';
 import { parentMap, StylesModal, applyThemeToDocument } from './components/styles';
 import Splitter from './components/Splitter';
 import DraggableModal from './components/DraggableModal';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 
 import {
   type MediaItem, type TimelineClip, type Track,
@@ -225,7 +224,7 @@ function AppContent() {
     const handler = (e: Event) => {
       const detail = getSettingsChangedDetail(e);
       if (detail?.key === 'allowEditsWhenMenuOpen') {
-        setAllowEditsWhenMenuOpen(detail.value ?? true);
+        if (typeof detail.value === 'boolean') setAllowEditsWhenMenuOpen(detail.value);
       }
     };
     window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
@@ -353,8 +352,7 @@ function AppContent() {
     sendThemeColorsToShader();
 
     // Listen for theme/color changes
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+    const handler = () => {
       // Trigger update on any style change
       setTimeout(sendThemeColorsToShader, 50);
     };
@@ -445,7 +443,7 @@ function AppContent() {
   // Listen for settings changes from the Settings modal
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const detail = getSettingsChangedDetail(e);
       if (detail?.key === 'elevatedPanelDarkenAmount' && typeof detail.value === 'number') {
         const pct = detail.value;
         let overlayColor: string;

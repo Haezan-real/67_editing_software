@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function ViewerControls({
-  clips, mediaItems, playhead, playing, totalFrames,
+  playhead, playing, totalFrames,
   onPlayPause, onSeek, style
 }: Props) {
   const [controlsType, setControlsType] = useState<string>(() => {

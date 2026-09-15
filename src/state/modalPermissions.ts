@@ -1,5 +1,5 @@
 import { modalManager } from './modalManager';
-import type { ModalType } from './modalManager';
+import type { ModalPermission, ModalType } from './modalManager';
 
 const MULTIPLE_MENUS_DISABLED = '⚠ <br/>opening multiple menus is disabled';
 

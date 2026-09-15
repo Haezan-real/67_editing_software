@@ -56,7 +56,6 @@ export default function FormulaPlayneedle({
   height = 200,
   maxWidth,
   color = '#f5f5f5',
-  glowColor = 'rgba(245, 245, 245, 0.4)',
   params,
   onClick,
   onMouseDown,

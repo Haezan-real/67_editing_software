@@ -67,7 +67,6 @@ export default function DraggableModal({
   const hasDraggedSignificantly = useRef(false);
   const draggedButtonRef = useRef<{ type: 'minimize' | 'close' | 'back'; action: () => void } | null>(null);
   const buttonExecutedRef = useRef(false); // Track if button was executed via mouseup
-  const isFirstRender = useRef(true);
   // Refs to store latest callbacks without triggering re-renders
   const onRestorePageStateRef = useRef(onRestorePageState);
   const onSavePageStateRef = useRef(onSavePageState);
@@ -200,7 +199,7 @@ export default function DraggableModal({
     const handler = (e: Event) => {
       const detail = getSettingsChangedDetail(e);
       if (detail?.key === 'allowEditsWhenMenuOpen') {
-        setAllowEditsWhenMenuOpen(detail.value ?? true);
+        if (typeof detail.value === 'boolean') setAllowEditsWhenMenuOpen(detail.value);
       }
     };
     window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
@@ -317,7 +316,7 @@ const handleMouseUp = () => {
                 </svg>
               </button>
             )}
-            <button className="icon-btn" onClick={(e) => { 
+            <button className="icon-btn" onClick={() => { 
                 const shouldExecute = (window as any).juicecut?.settings?.executeHeaderButtonsOnDrag ?? true; 
                 // If execute on drag is enabled and we already executed via mouseup, skip this click
                 if (shouldExecute && buttonExecutedRef.current) {

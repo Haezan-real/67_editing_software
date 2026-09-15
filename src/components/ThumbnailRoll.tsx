@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Props = {
   src: string;
@@ -13,7 +13,7 @@ async function captureFrames(src: string, count: number, thumbW: number, thumbH:
   video.muted = true;
   video.src = src;
 
-  await new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolve) => {
     const onLoaded = () => { cleanup(); resolve(); };
     const onError = () => { cleanup(); resolve(); };
     function cleanup() { video.onloadedmetadata = null; video.onerror = null; }

@@ -158,7 +158,6 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const draggingRef = useRef(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
 
   const [dragPos, setDragPos] = useState<{ left: number; top: number } | null>(null);
   const dragStateRef = useRef<{ startX: number; startY: number; startLeft: number; startTop: number } | null>(null);
@@ -216,7 +215,6 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
       top = rect.top - preferredHeight - 8;
       if (top < 8) top = 8;
     }
-    setPos({ left, top });
   }
 
   useEffect(() => {
@@ -237,12 +235,6 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
       try { onClose && onClose(); } catch (e) {}
     }
   }, [open]);
-
-  function applyRgb(r: number, g: number, b: number) {
-    const h = rgbToHex(r,g,b);
-    setHex(h);
-    onChange(h);
-  }
 
   function onHexChange(raw: string) {
     const v = raw.trim();
@@ -345,17 +337,6 @@ export default function ColorPicker({ value, onChange, fullScreen, autoOpen, onC
 
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      const cx = canvas.width/2;
-      const cy = canvas.height/2;
-      const dx = x - cx;
-      const dy = y - cy;
-      const r = Math.sqrt(dx*dx + dy*dy);
-      const radius = Math.min(cx, cy);
-
-      // if (r > radius) return; // Removed this check
 
       draggingRef.current = true;
       canvas.setPointerCapture(e.pointerId);

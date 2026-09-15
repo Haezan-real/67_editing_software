@@ -82,7 +82,7 @@ function readSetting<K extends keyof SettingsValues>(key: K): SettingsValues[K] 
     if (raw === null) return definition.default as SettingsValues[K];
     if (definition.kind === 'boolean') return (raw === 'true') as SettingsValues[K];
     if (definition.kind === 'enum') return (definition.values.includes(raw) ? raw : definition.default) as SettingsValues[K];
-    return normalizeSetting(key, Number(raw));
+    return normalizeSetting(key, Number(raw) as SettingsValues[K]);
   } catch {
     return definition.default as SettingsValues[K];
   }

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Undo2, Redo2 } from 'lucide-react';
 import { useLocalHistory } from '../state/history';
-import { formatShortcutLabel, getShortcutKeys, isShortcutMatch } from './shortcuts';
-import { formatSensitivity, adjustSensitivity, DEFAULT_SENSITIVITY, MIN_SENSITIVITY, MAX_SENSITIVITY, DISPLAY_DURATION_MS } from '../utils/sensitivity';
+import { formatShortcutLabel, isShortcutMatch } from './shortcuts';
+import { formatSensitivity, adjustSensitivity, DEFAULT_SENSITIVITY, DISPLAY_DURATION_MS } from '../utils/sensitivity';
 import { evaluateGraph, evaluateSegment } from '../domain/graphEvaluator';
 
 export interface SizeGraphPoint {
@@ -179,7 +179,7 @@ export default function GraphEditor({
   onEasingChange?: (offsets: number[]) => void;
   initialEasingOffsets?: number[];
 }) {
-  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
+  const [, setSelectedPointIndex] = useState<number | null>(null);
   const [svgWidth, setSvgWidth] = useState(config.width);
   const [easingOffsets, setEasingOffsets] = useState<number[]>(() => initialEasingOffsets ?? []);
   const [dragSensitivity, setDragSensitivity] = useState(DEFAULT_SENSITIVITY);
@@ -500,7 +500,6 @@ export default function GraphEditor({
   }, [config.width]);
 
   const plotHeight = config.height - config.padding * 2;
-  const plotWidth = Math.max(0, svgWidth - config.padding * 2);
   const undoShortcutLabel = formatShortcutLabel('undo');
   const redoShortcutLabel = formatShortcutLabel('redo');
 
@@ -647,7 +646,6 @@ export default function GraphEditor({
         })}
         {sortedGraph.map((point, index) => {
           const svgPoint = graphPointToSvg(config, point, svgWidth);
-          const isSelected = selectedPointIndex === index;
           return (
             <circle
               key={`point-${index}`}

@@ -206,7 +206,6 @@ export function createShaderRenderer(): ShaderRenderer {
   let cursorProgram: WebGLProgram | null = null;
   const cursorUniforms: Record<string, WebGLUniformLocation | null> = {};
   let cursorVao: WebGLVertexArrayObject | null = null;
-  let cursorVbo: WebGLBuffer | null = null;
   let cursorX = 0.5;
   let cursorY = 0.5;
 
@@ -444,7 +443,6 @@ export function createShaderRenderer(): ShaderRenderer {
       vao = null;
       vbo = null;
       cursorVao = null;
-      cursorVbo = null;
       texture = null;
       program = null;
       cursorProgram = null;

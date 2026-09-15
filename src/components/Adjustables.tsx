@@ -15,7 +15,7 @@ interface SliderProps {
   logScale?: boolean;
 }
 
-export function Slider({ label, value, min, max, step, onChange, onReset, formatValue, logScale }: SliderProps) {
+export function Slider({ label, value, min, max, onChange, onReset, formatValue, logScale }: SliderProps) {
   const defaultFormat = (v: number) => v.toFixed(3);
   const fmt = formatValue || defaultFormat;
   const displayValue = fmt(value);

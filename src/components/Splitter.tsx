@@ -27,7 +27,7 @@ export default function Splitter({ orientation, onChange, onDragEnd, thickness =
     onChange(delta);
   };
 
-  const handlePointerUp = (e: PointerEvent) => {
+  const handlePointerUp = () => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
     document.removeEventListener('pointermove', handlePointerMove);

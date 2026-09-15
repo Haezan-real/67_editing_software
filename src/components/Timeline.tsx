@@ -34,7 +34,6 @@ interface Props {
 const TRACK_H = 64;
 const HEADER_H = 32;
 const PX_PER_FRAME = 4;
-const PLAYHEAD_MAX_WIDTH = 20;
 
 // Retrieve saved playneedle width (in pixels) for timeline preview
 function getSavedPnWidth(): number {
@@ -157,9 +156,6 @@ export default function Timeline({
     window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
     return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
   }, []);
-  const getGuiScale = () => {
-    try { const v = window.localStorage.getItem('juicecut.settings.guiScale'); return v ? Number(v) / 100 : 1; } catch { return 1; }
-  };
   const velocityRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const scrollElRef = useRef<HTMLElement | null>(null);
@@ -566,7 +562,6 @@ export default function Timeline({
           zoomMouseXRef.current = mouseX;
           zoomMouseXTargetRef.current = mouseX;
         } else {
-          const rect = el.getBoundingClientRect();
           const middleX = el.clientWidth / 2;
           zoomBeforeFrameRef.current = xToFrame(el.scrollLeft + middleX, zoomCurrentRef.current);
           zoomMouseXRef.current = middleX;

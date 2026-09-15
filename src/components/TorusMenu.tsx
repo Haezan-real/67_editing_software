@@ -2,7 +2,7 @@
 // Prevents entrance animation from replaying when component remounts.
 let torusMenuHasAnimated = false;
 
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Scissors, ChevronLeft, ChevronRight, Move } from 'lucide-react';
 import { getSavedSizeGraph, SizeGraphPoint } from './graph';
 import { evaluateGraphWithHandles, getSavedSegmentHandleValues } from '../utils/torusGraphEasing';
@@ -115,14 +115,6 @@ function getSavedDuration(): number {
   return 300;
 }
 
-function getSavedEasing(): number {
-  try {
-    const v = window.localStorage.getItem('juicecut.settings.torusEasing');
-    if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 0 && n <= 100) return n; }
-  } catch {}
-  return 50;
-}
-
 function getSavedDelay(): number {
   try {
     const v = window.localStorage.getItem('juicecut.settings.torusDelay');
@@ -143,13 +135,11 @@ export default function TorusMenu({
   onRoll = () => {},
   showCloseButton = false,
   duration: durationProp,
-  easing: easingProp,
   delay: delayProp,
   sizeGraph: sizeGraphProp,
   segmentHandleValues: segmentHandleValuesProp,
   items: propItems,
   cx: propCx_temp,
-  cy: propCy_temp,
   innerR: propInnerR,
   outerR: propOuterR,
   rotationOffset: propRotationOffset,
@@ -159,7 +149,6 @@ export default function TorusMenu({
   disableScrolling = 'none',
 }: Props) {
   const duration = durationProp ?? getSavedDuration();
-  const easing = easingProp ?? getSavedEasing();
   const delay = delayProp ?? getSavedDelay();
 
   // Audio is shared across menu instances and released when the last menu closes.
@@ -195,7 +184,6 @@ export default function TorusMenu({
   const segmentHandleValues = segmentHandleValuesProp ?? stableSegmentHandles;
 
   const propCx = propCx_temp ?? 120;
-  const propCy = propCy_temp ?? 120;
   const innerR = propInnerR ?? 52;
   const outerR = propOuterR ?? 100;
 
@@ -210,12 +198,10 @@ export default function TorusMenu({
   // Override cx and cy to be the true center of the new, larger container
   const cx = center;
   const cy = center;
-  const containerSize = center * 2;
   
 
   const rotationOffset = propRotationOffset ?? (-Math.PI / 6);
   const hoverScale = hoverScaleProp ?? getSavedHoverScale();
-  const maxOuterR = outerR * hoverScale;
     // 🔥 FIX: Calculate the outer radius based on hover state
   const getOuterR = (index: number) => {
     return hoveredIndex === index ? outerR * hoverScale : outerR;
@@ -375,17 +361,6 @@ export default function TorusMenu({
   }, [onClose, interactive, closeOnBackgroundClick, disableScrolling, outerR, cx, cy]);
 
   // Animation helpers
-  const durationSec = duration / 1000;
-  const t = easing / 100; // 0 = linear, 1 = max ease-in
-
-  const getEasing = () => {
-    // 0 = linear (cubic-bezier(0, 0, 1, 1))
-    // max = strong ease-in (cubic-bezier(0.2, 0, 1, 1.3))
-    const x2 = 1 - t * 0.8; // 1.0 (linear) -> 0.2 (strong ease-in)
-    const y2 = 1 + t * 0.3; // slight overshoot for bounce feel
-    return `cubic-bezier(${x2.toFixed(2)}, 0, 1, ${y2.toFixed(2)})`;
-  };
-
   const hasSizeGraph = Array.isArray(sizeGraph) && sizeGraph.length >= 2;
 
   // Compute per-sector delay based on delay prop and sector index
@@ -406,7 +381,6 @@ export default function TorusMenu({
 
   const getSectorStyle = (index: number): React.CSSProperties => {
     const isHovered = hoveredIndex === index;
-    const scale = isHovered ? hoverScale : 1;
     const fill = isHovered ? 'var(--hover-background, var(--input-field-bg))' : 'var(--input-field-bg)';
     
     return {

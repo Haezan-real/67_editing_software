@@ -394,9 +394,6 @@ async function main() {
 
     // Render loop — runs at vsync (60 fps) via requestAnimationFrame
     // so u_time progresses smoothly regardless of MediaStream frame rate.
-    let frameCount = 0;
-    let fpsStartTime = performance.now();
-    let fps = 0;
 
     function renderLoop() {
       if (stopped) return;
@@ -409,22 +406,9 @@ async function main() {
         // Pass the currentThemeColors to the render function
         renderer.renderFrame(gl, latestFrame, time, 1.0, currentThemeColors);
         
-        // Increment counter ONLY when a frame is actually rendered to the screen
-        frameCount++; 
       }
 
       rafId = requestAnimationFrame(renderLoop);
-
-      // Calculate FPS every second
-      const elapsed = now - fpsStartTime;
-      if (elapsed >= 1000) {
-        fps = Math.round((frameCount * 1000) / elapsed);
-        frameCount = 0;
-        fpsStartTime = now;
-        
-        // Send to main process
-        
-      }
     }
 
     frameReader();
