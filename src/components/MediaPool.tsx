@@ -120,6 +120,31 @@ export default function MediaPool({ items, selectedMediaId, onSelect, onAdd, onR
     
     return preview;
   };
+
+  const handleMediaDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, item: MediaItem) => {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', item.id);
+
+    const dragPreview = createDragPreview(item);
+    document.body.appendChild(dragPreview);
+    const updatePosition = (event: MouseEvent) => {
+      dragPreview.style.left = `${event.clientX + 12}px`;
+      dragPreview.style.top = `${event.clientY + 12}px`;
+    };
+    updatePosition(e.nativeEvent);
+
+    const transparentImg = new Image();
+    transparentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(transparentImg, 0, 0);
+
+    const cleanup = () => {
+      document.removeEventListener('mousemove', updatePosition);
+      document.removeEventListener('dragend', cleanup);
+      dragPreview.remove();
+    };
+    document.addEventListener('mousemove', updatePosition);
+    document.addEventListener('dragend', cleanup);
+  }, []);
   
   // View mode toggle button
   const ViewModeButton = () => (
@@ -184,42 +209,7 @@ export default function MediaPool({ items, selectedMediaId, onSelect, onAdd, onR
                 className={`media-item${selectedMediaId === item.id ? ' selected' : ''}`}
                 onClick={() => onSelect(item.id)}
                 draggable={true}
-                onDragStart={(e: React.DragEvent<HTMLDivElement>) => {
-                  e.dataTransfer.effectAllowed = 'copy';
-                  e.dataTransfer.setData('text/plain', item.id);
-                  
-                  // Create custom drag preview
-                  const dragPreview = createDragPreview(item);
-                  document.body.appendChild(dragPreview);
-                  
-                  // Position it at cursor using native event
-                  const nativeEvent = e.nativeEvent;
-                  const updatePosition = (ev: MouseEvent) => {
-                    dragPreview.style.left = `${ev.clientX + 12}px`;
-                    dragPreview.style.top = `${ev.clientY + 12}px`;
-                  };
-                  
-                  updatePosition(nativeEvent);
-                  
-                  // Use a tiny transparent element as the native drag image
-                  // so our custom element can follow the cursor
-                  const transparentImg = new Image();
-                  transparentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                  e.dataTransfer.setDragImage(transparentImg, 0, 0);
-                  
-                  // Clean up after drag ends
-                  const cleanup = () => {
-                    document.removeEventListener('mousemove', updatePosition);
-                    document.removeEventListener('dragend', cleanup);
-                    // Note: dragleave fires immediately when leaving source element, so don't use it
-                    if (dragPreview.parentNode) {
-                      dragPreview.parentNode.removeChild(dragPreview);
-                    }
-                  };
-                  
-                  document.addEventListener('mousemove', updatePosition);
-                  document.addEventListener('dragend', cleanup);
-                }}
+                onDragStart={e => handleMediaDragStart(e, item)}
               >
                 <div className="media-thumb">
                   {item.thumbnail
@@ -262,42 +252,7 @@ export default function MediaPool({ items, selectedMediaId, onSelect, onAdd, onR
                 className={`media-item${selectedMediaId === item.id ? ' selected' : ''}`}
                 onClick={() => onSelect(item.id)}
                 draggable={true}
-                onDragStart={(e: React.DragEvent<HTMLDivElement>) => {
-                  e.dataTransfer.effectAllowed = 'copy';
-                  e.dataTransfer.setData('text/plain', item.id);
-                  
-                  // Create custom drag preview
-                  const dragPreview = createDragPreview(item);
-                  document.body.appendChild(dragPreview);
-                  
-                  // Position it at cursor using native event
-                  const nativeEvent = e.nativeEvent;
-                  const updatePosition = (ev: MouseEvent) => {
-                    dragPreview.style.left = `${ev.clientX + 12}px`;
-                    dragPreview.style.top = `${ev.clientY + 12}px`;
-                  };
-                  
-                  updatePosition(nativeEvent);
-                  
-                  // Use a tiny transparent element as the native drag image
-                  // so our custom element can follow the cursor
-                  const transparentImg = new Image();
-                  transparentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                  e.dataTransfer.setDragImage(transparentImg, 0, 0);
-                  
-                  // Clean up after drag ends
-                  const cleanup = () => {
-                    document.removeEventListener('mousemove', updatePosition);
-                    document.removeEventListener('dragend', cleanup);
-                    // Note: dragleave fires immediately when leaving source element, so don't use it
-                    if (dragPreview.parentNode) {
-                      dragPreview.parentNode.removeChild(dragPreview);
-                    }
-                  };
-                  
-                  document.addEventListener('mousemove', updatePosition);
-                  document.addEventListener('dragend', cleanup);
-                }}
+                onDragStart={e => handleMediaDragStart(e, item)}
                 style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
