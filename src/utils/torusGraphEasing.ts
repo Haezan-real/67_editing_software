@@ -1,19 +1,6 @@
 //torusGraphEasing.ts
 import type { SizeGraphPoint } from '../components/graph';
-
-const STRENGTH = 3;
-
-function evaluateSegment(localT: number, handleValue: number): number {
-  if (handleValue === 0) return localT;
-  if (handleValue < 0) {
-    return Math.pow(localT, 1 - handleValue * STRENGTH);
-  }
-  return 1 - Math.pow(1 - localT, 1 + handleValue * STRENGTH);
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
+import { evaluateGraph } from '../domain/graphEvaluator';
 
 export function evaluateGraphWithHandles(
   time: number,
@@ -21,36 +8,9 @@ export function evaluateGraphWithHandles(
   segmentHandleValues: number[] = [],
   logEasing = false,
 ): number {
-  if (!graphPoints || graphPoints.length === 0) return 0;
-  if (graphPoints.length === 1) return graphPoints[0].size;
-
-  const clampedTime = Math.max(0, Math.min(1, time));
-  const sorted = graphPoints.slice().sort((a, b) => a.time - b.time);
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const segment = sorted[i];
-    const nextX = sorted[i + 1].time;
-    const nextY = sorted[i + 1].size;
-
-    if (clampedTime >= segment.time && clampedTime <= nextX) {
-      const segmentDuration = nextX - segment.time;
-      const localT = segmentDuration > 0 ? (clampedTime - segment.time) / segmentDuration : 0;
-      const handleValue = segmentHandleValues[i] ?? 0;
-
-      let easedProgress = localT;
-      if (handleValue !== 0) {
-        easedProgress = evaluateSegment(localT, handleValue);
-      }
-
-      if (logEasing) {
-        console.log('Eased Progress:', easedProgress, 'Linear Progress:', localT);
-      }
-
-      return lerp(segment.size, nextY, easedProgress);
-    }
-  }
-
-  return sorted[sorted.length - 1].size;
+  const result = evaluateGraph(time, graphPoints, segmentHandleValues);
+  if (logEasing) console.log('Evaluated graph value:', result);
+  return result;
 }
 
 export function getSavedSegmentHandleValues(): number[] {

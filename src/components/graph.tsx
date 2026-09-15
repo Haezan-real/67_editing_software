@@ -4,6 +4,7 @@ import { Undo2, Redo2 } from 'lucide-react';
 import { useLocalHistory } from '../state/history';
 import { formatShortcutLabel, getShortcutKeys, isShortcutMatch } from './shortcuts';
 import { formatSensitivity, adjustSensitivity, DEFAULT_SENSITIVITY, MIN_SENSITIVITY, MAX_SENSITIVITY, DISPLAY_DURATION_MS } from '../utils/sensitivity';
+import { evaluateGraph, evaluateSegment } from '../domain/graphEvaluator';
 
 export interface SizeGraphPoint {
   time: number;
@@ -83,52 +84,10 @@ function snapshotsEqual(a: GraphSnapshot, b: GraphSnapshot): boolean {
 }
 
 // Helper function for Power Curve easing
-function evaluateSegment(t: number, handleValue: number): number {
-  const strength = 3;
-  if (handleValue < 0) {
-    const power = 1 - (handleValue * strength);
-    return Math.pow(t, power);
-  } else if (handleValue > 0) {
-    const power = 1 + (handleValue * strength);
-    return 1 - Math.pow(1 - t, power);
-  }
-  return t; // Linear fallback
-}
-
 // Evaluate the graph at a given normalized time (0-1)
 // Returns the interpolated size value using Power Curve easing for each segment
-export function evaluateGraphAtTime(time: number, points: SizeGraphPoint[]): number {
-  if (!points || points.length === 0) return 0;
-  if (points.length === 1) return points[0].size;
-  
-  // Clamp time to [0, 1]
-  const clampedTime = Math.max(0, Math.min(1, time));
-  
-  // Find the segment containing this time
-  for (let i = 0; i < points.length - 1; i++) {
-    const pointA = points[i];
-    const pointB = points[i + 1];
-    
-    if (clampedTime >= pointA.time && clampedTime <= pointB.time) {
-      // Normalize t within the segment
-      const segmentDuration = pointB.time - pointA.time;
-      const t = segmentDuration > 0 ? (clampedTime - pointA.time) / segmentDuration : 0;
-      
-      // Calculate handleValue for this segment based on the midpoint constraint
-      const midpointT = 0.5;
-      const midpointSize = pointA.size + (pointB.size - pointA.size) * midpointT;
-      
-      // For now, use a default handleValue of 0 (linear)
-      // This will be computed from the easingOffsets if available
-      const handleValue = 0;
-      
-      const curvedProgress = evaluateSegment(t, handleValue);
-      return pointA.size + (pointB.size - pointA.size) * curvedProgress;
-    }
-  }
-  
-  // If time is beyond the last point, return last point's value
-  return points[points.length - 1].size;
+export function evaluateGraphAtTime(time: number, points: SizeGraphPoint[], segmentHandleValues: number[] = []): number {
+  return evaluateGraph(time, points, segmentHandleValues);
 }
 
 function getGraphMetrics(config: GraphConfig, graphWidth: number) {
@@ -643,16 +602,8 @@ export default function GraphEditor({
             }
             handleValue = Math.max(-1, Math.min(1, handleValue));
 
-            const strength = 3;
             const t = 0.5;
-            let curvedProgress = t;
-            if (handleValue < 0) {
-              const power = 1 - (handleValue * strength);
-              curvedProgress = Math.pow(t, power);
-            } else if (handleValue > 0) {
-              const power = 1 + (handleValue * strength);
-              curvedProgress = 1 - Math.pow(1 - t, power);
-            }
+            const curvedProgress = evaluateSegment(t, handleValue);
             const finalY = point.size + (nextPoint.size - point.size) * curvedProgress;
             const handleY = config.padding + (1 - finalY) * plotHeight;
             
