@@ -12,6 +12,10 @@ const WINDOW_DEFAULTS = { width: 1280, height: 800 };
 const WIN_PRELOAD = path.join(__dirname, 'preload.cjs');
 const WIN_ICON = path.join(__dirname, 'src/67_editing_software.ico');
 const maximize_delay = 1;
+const IS_DEVELOPMENT = process.env.ELECTRON_DEV === 'true';
+const DEV_SERVER_URL = 'http://localhost:5173';
+const APP_ENTRY = path.join(__dirname, 'dist/index.html');
+const SHADER_ENTRY = path.join(__dirname, 'dist/shader_window.html');
 
 // ─── Config validation with defaults ─────────────────────────────────────────
 function loadConfig() {
@@ -49,6 +53,13 @@ class WindowManager {
     this.ready = false;
   }
 
+  loadWindow(window, developmentPath, productionPath) {
+    if (IS_DEVELOPMENT) {
+      return window.loadURL(`${DEV_SERVER_URL}/${developmentPath}`.replace(/\/$/, ''));
+    }
+    return window.loadFile(productionPath);
+  }
+
   // ── Window Creation ──────────────────────────────────────────────────────
 
   createAppWindow() {
@@ -67,7 +78,7 @@ class WindowManager {
       webPreferences: WEB_PREFERENCES,
     });
     this.appWindow.setTitle(APP_TITLE);
-    this.appWindow.loadURL('http://localhost:5173');
+    this.loadWindow(this.appWindow, '', APP_ENTRY);
     
     // Maximize after the delay once the window finishes loading
     this.appWindow.webContents.once('did-finish-load', () => {
@@ -107,7 +118,7 @@ class WindowManager {
       this.shaderWindow.webContents.openDevTools();
     }
 
-    this.shaderWindow.loadURL('http://localhost:5173/shader_window.html');
+    this.loadWindow(this.shaderWindow, 'shader_window.html', SHADER_ENTRY);
     console.log('✅ shader_window created (regular size, will sync when parent maximizes)');
     return this.shaderWindow;
   }
@@ -122,7 +133,7 @@ class WindowManager {
       icon: WIN_ICON,
       webPreferences: WEB_PREFERENCES,
     });
-    this.appWindow.loadURL('http://localhost:5173');
+    this.loadWindow(this.appWindow, '', APP_ENTRY);
     
     // Maximize after the delay once the window finishes loading
     this.appWindow.webContents.once('did-finish-load', () => {
