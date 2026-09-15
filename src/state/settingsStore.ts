@@ -68,7 +68,11 @@ export const SETTINGS_SCHEMA: SettingSchema = {
 };
 
 function storageKey(key: keyof SettingsValues): string {
-  return `juicecut.settings.${key}`;
+  const legacyKeys: Partial<Record<keyof SettingsValues, string>> = {
+    elevatedPanelDarken: 'juicecut.settings.elevatedPanelDarkenAmount',
+    elevatedPanelBlur: 'juicecut.settings.elevatedPanelBlurAmount',
+  };
+  return legacyKeys[key] ?? `juicecut.settings.${key}`;
 }
 
 function readSetting<K extends keyof SettingsValues>(key: K): SettingsValues[K] {

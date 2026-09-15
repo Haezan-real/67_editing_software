@@ -30,6 +30,7 @@ import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './state/settin
 import { useLayoutSettings } from './hooks/useLayoutSettings';
 import { useExportJob } from './hooks/useExportJob';
 import { useTimelineEditor } from './hooks/useTimelineEditor';
+import { getMediaType } from './domain/mediaIngestion';
 import { modalManager, registerModalPermissions } from './state';
 import Toast from './components/Toast';
 // Toast is a class, not a React component - no need to render it
@@ -578,10 +579,8 @@ function AppContent() {
 
     for (const file of supportedFiles) {
       if (!isMountedRef.current) return;
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      const isVideo = ['mp4', 'mkv', 'mov', 'webm'].includes(ext);
-      const isAudio = ['mp3', 'ogg', 'wav', 'aac'].includes(ext);
-      const type: MediaItem['type'] = isVideo ? 'video' : isAudio ? 'audio' : 'image';
+      const type = getMediaType(file.name);
+      if (!type) continue;
       const src = URL.createObjectURL(file);
       const duration = await loadMediaDuration(file, type);
       if (!isMountedRef.current) {
