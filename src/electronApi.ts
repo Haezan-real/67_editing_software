@@ -13,6 +13,7 @@ export interface ElectronAPI {
   sendCursorPosition: (position: CursorPosition) => void;
   sendShaderFps: (fps: number) => void;
   sendShaderColors: (colors: number[]) => void;
+  isCustomCursorEnabled: () => boolean;
   notifyShaderWindowReady: () => void;
   getWindowSourceId: () => Promise<string | null>;
   getWindowSourceDesktopId: () => Promise<string | null>;

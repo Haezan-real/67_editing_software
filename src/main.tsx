@@ -4,6 +4,10 @@ import App from './App.tsx';
 import './index.css';
 import { DEFAULT_SETTINGS } from './state/settingsDefaults';
 
+if (window.electronAPI?.isCustomCursorEnabled()) {
+  document.documentElement.style.cursor = 'none';
+}
+
 // Initialize theme transition settings from localStorage before the app renders
 try {
   const saved = window.localStorage.getItem('juicecut.settings.colorTransitionDuration');

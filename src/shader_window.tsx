@@ -64,18 +64,12 @@ async function loadShaderRenderer(shaderName: string) {
 
 async function main() {
   console.log('running async function main()');
-  
-  let customCursor = false;
-  try {
-    const cfg = await fetch('/config.json').then(r => r.json());
-    customCursor = cfg?.custom_cursor ?? false;
-    if (customCursor) {
-      document.body.style.cursor = 'none';
-      document.documentElement.style.cursor = 'none';
-      console.log('Overlay: System cursor hidden via custom_cursor config');
-    }
-  } catch (e) {
-    console.warn('Overlay: Failed to fetch config for custom_cursor');
+  const api = window.electronAPI;
+  const customCursor = api?.isCustomCursorEnabled() ?? false;
+  if (customCursor) {
+    document.body.style.cursor = 'none';
+    document.documentElement.style.cursor = 'none';
+    console.log('Overlay: System cursor hidden via custom_cursor config');
   }
 
   let stream: MediaStream | null = null;
@@ -159,8 +153,6 @@ async function main() {
     console.log('Overlay: WebGL2 context created successfully');
 
     // ─── Create the shader renderer ─────────────────────────────────────────
-    const api = window.electronAPI;
-    
     let currentShaderName = 'default_shader'; // Can be updated via localStorage later
     let rendererRequestId = 0;
 

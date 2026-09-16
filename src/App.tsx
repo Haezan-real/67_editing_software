@@ -628,34 +628,11 @@ function AppContent() {
 
   // Toggle cursor visibility based on config.custom_cursor
   useEffect(() => {
-    let injectedStyleTag: HTMLStyleElement | null = null;
-    fetch('/config.json')
-      .then(r => r.json())
-      .then(cfg => {
-        if (cfg?.custom_cursor) {
-          // ENABLE CUSTOM CURSOR MODE
-          document.body.classList.add('cursor-hidden');
-          // Inject the nuclear option just in case
-          injectedStyleTag = document.createElement('style');
-          injectedStyleTag.innerHTML = '* { cursor: none !important; }';
-          document.head.appendChild(injectedStyleTag);
-        } else {
-          // DISABLE CUSTOM CURSOR MODE (Revert to normal)
-          document.body.classList.remove('cursor-hidden');
-          document.documentElement.style.cursor = '';
-          document.body.style.cursor = '';
-          // Remove injected style if it exists
-          if (injectedStyleTag && injectedStyleTag.parentNode) {
-            injectedStyleTag.parentNode.removeChild(injectedStyleTag);
-          }
-        }
-      })
-      .catch(() => {});
-    // Cleanup on unmount
+    const customCursorEnabled = window.electronAPI?.isCustomCursorEnabled() ?? false;
+    document.body.classList.toggle('cursor-hidden', customCursorEnabled);
+
     return () => {
-      if (injectedStyleTag && injectedStyleTag.parentNode) {
-        injectedStyleTag.parentNode.removeChild(injectedStyleTag);
-      }
+      document.body.classList.remove('cursor-hidden');
     };
   }, []);
 

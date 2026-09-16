@@ -8,6 +8,7 @@ console.log('🔧 Preload script loaded');
 // 1. Read config.json safely
 const configPath = path.join(__dirname, 'config.json');
 let borderRadius = '0px'; // Default fallback
+let customCursorEnabled = false;
 try {
   const configData = fs.readFileSync(configPath, 'utf8');
   const config = JSON.parse(configData);
@@ -18,6 +19,7 @@ try {
     : 0;
     
   borderRadius = `${radiusVal}px`;
+  customCursorEnabled = config.custom_cursor === true;
 } catch (err) {
   console.error('🔧 Failed to read config.json in preload:', err);
 }
@@ -68,6 +70,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.send('update-shader-colors', colors);
     }
   },
+  isCustomCursorEnabled: () => customCursorEnabled,
   onShaderFps: callback => subscribe('shader-fps', callback),
   onCursorMove: callback => subscribe('cursor-move', callback),
   onApplyShader: callback => subscribe('apply-shader', callback),
