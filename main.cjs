@@ -49,7 +49,8 @@ class WindowManager {
     this.isDragging = false;
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
-    this.isSyncing = false;
+    this.dragStartWidth = null;
+    this.dragStartHeight = null;
     this.ready = false;
     this.latestShaderColors = null;
   }
@@ -80,6 +81,18 @@ class WindowManager {
     });
     this.appWindow.setTitle(APP_TITLE);
     this.loadWindow(this.appWindow, '', APP_ENTRY);
+
+    // Windows fires spurious native 'resize' events with slowly-incrementing
+    // height purely from repeated setPosition() calls during a drag; correct
+    // it back immediately so the window never visibly grows while dragging.
+    this.appWindow.on('resize', () => {
+      if (!this.isDragging || !this.dragStartWidth || !this.dragStartHeight) return;
+      if (!this.appWindow || this.appWindow.isDestroyed()) return;
+      const bounds = this.appWindow.getBounds();
+      if (bounds.width !== this.dragStartWidth || bounds.height !== this.dragStartHeight) {
+        this.appWindow.setSize(this.dragStartWidth, this.dragStartHeight, false);
+      }
+    });
     
     // Maximize after the delay once the window finishes loading
     this.appWindow.webContents.once('did-finish-load', () => {
@@ -195,19 +208,70 @@ class WindowManager {
 
   // ── Window Synchronization ───────────────────────────────────────────────
 
+  // Coalesces bursts of native window events into at most one call per
+  // animation frame, always applying the latest (trailing) state. Replaces
+  // the old synchronous isSyncing mutex, which couldn't guard against the
+  // async native setBounds() calls that caused runaway growth while dragging.
+  createFrameThrottle(fn, frameMs = 16) {
+    let timer = null;
+    let lastRun = 0;
+    const run = () => {
+      timer = null;
+      lastRun = Date.now();
+      fn();
+    };
+    const throttled = () => {
+      const elapsed = Date.now() - lastRun;
+      if (elapsed >= frameMs) {
+        if (timer) { clearTimeout(timer); timer = null; }
+        run();
+      } else if (!timer) {
+        timer = setTimeout(run, frameMs - elapsed);
+      }
+    };
+    throttled.cancel = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+    };
+    throttled.flush = run;
+    return throttled;
+  }
+
   setupWindowSync() {
     if (!this.cfg.syncWindows || !this.shaderWindow) return;
 
-    const syncBounds = () => {
-      if (this.isSyncing) return;
+    // Pure window moves only change position — never rewrite size here.
+    // Rewriting the full rect on every native move tick was the mechanism
+    // that let a stale/rounded size get reasserted dozens of times a second.
+    const flushPositionSync = () => {
       if (!this.shaderWindow || !this.appWindow) return;
       if (this.shaderWindow.isDestroyed() || this.appWindow.isDestroyed()) return;
-      this.isSyncing = true;
-      try {
-        this.shaderWindow.setBounds(this.appWindow.getBounds(), false);
-      } finally {
-        this.isSyncing = false;
-      }
+      const { x, y } = this.appWindow.getBounds();
+      this.shaderWindow.setPosition(x, y, false);
+    };
+    const syncPosition = this.createFrameThrottle(flushPositionSync);
+
+    // Resizes legitimately change size, so the full rect is synced here.
+    // Ignored mid-drag: Windows fires spurious native 'resize' events with a
+    // slowly-incrementing height on frameless windows purely from repeated
+    // setPosition() calls (confirmed via diagnostic logging) — copying that
+    // onto shaderWindow would reintroduce the growth this fix removes.
+    const flushBoundsSync = () => {
+      if (!this.shaderWindow || !this.appWindow) return;
+      if (this.shaderWindow.isDestroyed() || this.appWindow.isDestroyed()) return;
+      this.shaderWindow.setBounds(this.appWindow.getBounds(), false);
+    };
+    const syncFullBounds = this.createFrameThrottle(() => {
+      if (this.isDragging) return;
+      flushBoundsSync();
+    });
+
+    // Exposed so window-drag-end can force one exact final sync immediately,
+    // instead of waiting on the trailing edge of the per-frame throttle.
+    this.flushWindowSync = () => {
+      syncPosition.cancel();
+      syncFullBounds.cancel();
+      flushPositionSync();
+      flushBoundsSync();
     };
 
     let stateSyncTimer = null;
@@ -217,12 +281,12 @@ class WindowManager {
       if (stateSyncTimer) clearTimeout(stateSyncTimer);
       stateSyncTimer = setTimeout(() => {
         stateSyncTimer = null;
-        syncBounds();
+        flushBoundsSync();
       }, 75);
     };
 
-    this.appWindow.on('move', syncBounds);
-    this.appWindow.on('resize', syncBounds);
+    this.appWindow.on('move', syncPosition);
+    this.appWindow.on('resize', syncFullBounds);
 
     this.appWindow.on('maximize', () => {
       if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
@@ -245,6 +309,12 @@ class WindowManager {
         this.shaderWindow.showInactive();
         syncBoundsAfterStateChange();
       }
+    });
+
+    this.appWindow.on('closed', () => {
+      syncPosition.cancel();
+      syncFullBounds.cancel();
+      if (stateSyncTimer) clearTimeout(stateSyncTimer);
     });
 
     // Initial sync after a short delay to let both windows settle
@@ -343,6 +413,8 @@ class WindowManager {
       this.isDragging = true;
       this.dragOffsetX = position.x - bounds.x;
       this.dragOffsetY = position.y - bounds.y;
+      this.dragStartWidth = bounds.width;
+      this.dragStartHeight = bounds.height;
     });
 
     ipcMain.on('window-drag-move', (event, position) => {
@@ -354,7 +426,12 @@ class WindowManager {
     });
 
     ipcMain.on('window-drag-end', (event) => {
-      if (isAppWindowSender(event)) this.isDragging = false;
+      if (!isAppWindowSender(event)) return;
+      this.isDragging = false;
+      this.dragStartWidth = null;
+      this.dragStartHeight = null;
+      // Guarantee the overlay lands on the exact final bounds, bypassing the throttle's trailing delay.
+      this.flushWindowSync?.();
     });
 
     // Runtime toggle for app_window click-through
