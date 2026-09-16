@@ -584,45 +584,6 @@ class WindowManager {
 
     this.ready = true;
     console.log('✅ WindowManager initialized successfully');
-
-    if (process.env.DRAG_SELFTEST === '1') {
-      this.runDragSelfTest();
-    }
-  }
-
-  // ── TEMP DIAGNOSTIC: checks whether thickFrame:false stops spurious resize ──
-  runDragSelfTest() {
-    if (!this.appWindow) return;
-    this.appWindow.on('resize', () => console.log('app RESIZE', Date.now(), this.appWindow.getBounds()));
-    if (this.shaderWindow) {
-      this.shaderWindow.on('resize', () => console.log('shader RESIZE', Date.now(), this.shaderWindow.getBounds()));
-    }
-
-    setTimeout(() => {
-      if (!this.appWindow || this.appWindow.isDestroyed()) return;
-      if (this.appWindow.isMaximized()) this.appWindow.unmaximize();
-
-      console.log('DRAG SELFTEST: static mousedown hold (no movement) for 500ms');
-      this.isDragging = true;
-      const start = this.appWindow.getBounds();
-      this.dragStartWidth = start.width;
-      this.dragStartHeight = start.height;
-
-      setTimeout(() => {
-        console.log('DRAG SELFTEST: starting simulated drag');
-        let i = 0;
-        const timer = setInterval(() => {
-          if (!this.appWindow || this.appWindow.isDestroyed() || i >= 120) {
-            clearInterval(timer);
-            this.isDragging = false;
-            console.log('DRAG SELFTEST: complete, final app bounds =', this.appWindow?.getBounds(), 'final shader bounds =', this.shaderWindow?.getBounds());
-            return;
-          }
-          this.appWindow.setPosition(start.x + i * 2, start.y + i, false);
-          i++;
-        }, 16);
-      }, 500);
-    }, 2000);
   }
 }
 
