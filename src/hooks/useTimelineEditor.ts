@@ -1,9 +1,10 @@
 import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
+import type { AppSnapshot } from '../state/history';
 import type { MediaItem, TimelineClip, Track } from '../types';
 import { generateId } from '../types';
 import { addClip, changeFade, changeSourceRange, joinClips, nudgeClips, splitClip, stepEdge, trimFormer, trimLatter, type TimelineEditResult } from '../domain/timelineEdits';
 
-type HistoryApi = { push: (snapshot: unknown) => void };
+type HistoryApi = { push: (snapshot: AppSnapshot) => void };
 
 interface TimelineEditorOptions {
   clips: TimelineClip[];
@@ -11,7 +12,7 @@ interface TimelineEditorOptions {
   setClips: Dispatch<SetStateAction<TimelineClip[]>>;
   setSelectedIds: Dispatch<SetStateAction<string[]>>;
   history: HistoryApi;
-  snapshot: () => unknown;
+  snapshot: () => AppSnapshot;
 }
 
 const TRACKS: Track[] = [
@@ -20,7 +21,7 @@ const TRACKS: Track[] = [
 ];
 
 export function useTimelineEditor({ clips, mediaItems, setClips, setSelectedIds, history, snapshot }: TimelineEditorOptions) {
-  const fadeHistorySnapshotRef = useRef<unknown | null>(null);
+  const fadeHistorySnapshotRef = useRef<AppSnapshot | null>(null);
   const fadeChangedRef = useRef(false);
 
   const applyEdit = useCallback((result: TimelineEditResult) => {

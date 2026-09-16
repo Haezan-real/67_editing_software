@@ -22,8 +22,8 @@ async function computePeaks(src: string, samples: number): Promise<Float32Array>
   const blockSize = Math.floor(decoded.length / samples) || 1;
   const peaks = new Float32Array(samples);
   for (let i = 0; i < samples; i++) {
-    let start = i * blockSize;
-    let end = Math.min(decoded.length, start + blockSize);
+    const start = i * blockSize;
+    const end = Math.min(decoded.length, start + blockSize);
     let max = 0;
     for (let c = 0; c < channelCount; c++) {
       const data = chData[c];

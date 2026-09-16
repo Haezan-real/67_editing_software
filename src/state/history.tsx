@@ -1,6 +1,12 @@
 import { createContext, useCallback, useContext, useRef, useState, ReactNode } from 'react';
 
-export type AppSnapshot = any; // opaque snapshot type (App decides structure)
+export type AppSnapshot = Record<string, unknown>; // opaque snapshot type (App decides structure)
+
+function snapshotMeta(snapshot: AppSnapshot): { type?: string } | undefined {
+  return typeof snapshot.__meta === 'object' && snapshot.__meta !== null
+    ? snapshot.__meta as { type?: string }
+    : undefined;
+}
 
 export type HistoryAction = 'push' | 'undo' | 'redo' | 'clear';
 
@@ -64,7 +70,7 @@ export function useLocalHistory<T>(scope: string, max = 200): HistoryStack<T> {
     setUndoStack(nextUndoStack);
     setRedoStack(nextRedoStack);
     restore(toRestore);
-  }, [scope]);
+  }, []);
 
   const redo = useCallback((currentSnapshot: T, restore: (snap: T) => void) => {
     const previous = redoStackRef.current;
@@ -144,7 +150,7 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     const movedToRedo: AppSnapshot[] = [];
     while (nextUndoStack.length > 0) {
       const last = nextUndoStack[nextUndoStack.length - 1];
-      if (!includeResize && last?.__meta?.type === 'resize') {
+      if (!includeResize && snapshotMeta(last)?.type === 'resize') {
         movedToRedo.push(nextUndoStack.pop()!);
         continue;
       }
@@ -152,7 +158,7 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
       logHistoryAction(scope, 'undo', {
         undoDepthAfter: nextUndoStack.length,
         skippedResizeSnapshots: movedToRedo.length,
-        restoredMeta: toRestore?.__meta,
+        restoredMeta: snapshotMeta(toRestore),
       });
       const nextRedoStack = redoStackRef.current.concat([currentSnapshot], movedToRedo.reverse());
       undoStackRef.current = nextUndoStack;
@@ -176,7 +182,7 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     const movedToUndo: AppSnapshot[] = [];
     while (nextRedoStack.length > 0) {
       const last = nextRedoStack[nextRedoStack.length - 1];
-      if (!includeResize && last?.__meta?.type === 'resize') {
+      if (!includeResize && snapshotMeta(last)?.type === 'resize') {
         movedToUndo.push(nextRedoStack.pop()!);
         continue;
       }
@@ -184,7 +190,7 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
       logHistoryAction(scope, 'redo', {
         redoDepthAfter: nextRedoStack.length,
         skippedResizeSnapshots: movedToUndo.length,
-        restoredMeta: toRestore?.__meta,
+        restoredMeta: snapshotMeta(toRestore),
       });
       const nextUndoStack = undoStackRef.current.concat([currentSnapshot], movedToUndo.reverse());
       undoStackRef.current = nextUndoStack;

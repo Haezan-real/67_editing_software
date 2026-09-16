@@ -2,13 +2,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import MediaPool from './components/MediaPool';
 
-// Web APIs not yet in TypeScript standard library
-declare class MediaStreamTrackProcessor {
-  readonly track: MediaStreamTrack;
-  readonly readable: ReadableStream<VideoFrame>;
-  constructor(options: { track: MediaStreamTrack });
-}
-
 import Viewer from './components/Viewer';
 import Timeline from './components/Timeline';
 import RollDialog from './components/RollDialog';
@@ -24,7 +17,7 @@ import {
   type MediaItem, type TimelineClip, type Track,
   FPS, generateId, secondsToFrames
 } from './types';
-import { HistoryProvider, useHistory } from './state/history';
+import { HistoryProvider, useHistory, type AppSnapshot } from './state/history';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './state/settingsEvents';
 import { useLayoutSettings } from './hooks/useLayoutSettings';
 import { useExportJob } from './hooks/useExportJob';
@@ -418,22 +411,27 @@ function AppContent() {
     layout: { leftWidthPct, timelineHeightPct }
   }), [clips, mediaItems, selectedIds, playhead, playheadTop, includeResizeInUndo, leftWidthPct, timelineHeightPct]);
 
-  const restore = useCallback((snap: any) => {
+  const restore = useCallback((snap: AppSnapshot) => {
     try {
-      setClips(Array.isArray(snap?.clips) ? snap.clips : []);
-      setMediaItems(new Map(Array.isArray(snap?.mediaItems) ? snap.mediaItems : []));
-      setSelectedIds(Array.isArray(snap?.selectedIds) ? snap.selectedIds : []);
-      setPlayhead(typeof snap?.playhead === 'number' ? snap.playhead : 0);
-      if (snap?.settings) {
-        if (typeof snap.settings.playheadTop === 'number') {
-          const v = snap.settings.playheadTop;
+      const clipsValue = Array.isArray(snap.clips) ? snap.clips as TimelineClip[] : [];
+      const mediaValue = Array.isArray(snap.mediaItems) ? snap.mediaItems as Array<[string, MediaItem]> : [];
+      const selectedValue = Array.isArray(snap.selectedIds) ? snap.selectedIds as string[] : [];
+      setClips(clipsValue);
+      setMediaItems(new Map(mediaValue));
+      setSelectedIds(selectedValue);
+      setPlayhead(typeof snap.playhead === 'number' ? snap.playhead : 0);
+      const settings = typeof snap.settings === 'object' && snap.settings !== null ? snap.settings as Record<string, unknown> : {};
+      const layout = typeof snap.layout === 'object' && snap.layout !== null ? snap.layout as Record<string, unknown> : {};
+      if (settings) {
+        if (typeof settings.playheadTop === 'number') {
+          const v = settings.playheadTop;
           setPlayheadTop(v >= 0 && v <= 100 ? v : 15);
         }
-        setIncludeResizeInUndo(typeof snap.settings.includeResizeInUndo === 'boolean' ? snap.settings.includeResizeInUndo : includeResizeInUndo);
+        setIncludeResizeInUndo(typeof settings.includeResizeInUndo === 'boolean' ? settings.includeResizeInUndo : includeResizeInUndo);
       }
-      if (snap?.layout) {
-        setLeftWidthPct(typeof snap.layout.leftWidthPct === 'number' ? snap.layout.leftWidthPct : leftWidthPct);
-        setTimelineHeightPct(typeof snap.layout.timelineHeightPct === 'number' ? snap.layout.timelineHeightPct : timelineHeightPct);
+      if (layout) {
+        setLeftWidthPct(typeof layout.leftWidthPct === 'number' ? layout.leftWidthPct : leftWidthPct);
+        setTimelineHeightPct(typeof layout.timelineHeightPct === 'number' ? layout.timelineHeightPct : timelineHeightPct);
       }
     } catch (err) {
       console.warn('Failed to restore snapshot', err);

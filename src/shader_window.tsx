@@ -34,6 +34,18 @@ console.log('PARSE: MediaStreamTrackProcessor declaration complete');
 
 console.log('PARSE: ShaderRenderer imported');
 
+interface ShaderRenderer {
+  init: (gl: WebGL2RenderingContext, options: { customCursor: boolean }) => boolean;
+  destroy: (gl: WebGL2RenderingContext) => void;
+  resize: (gl: WebGL2RenderingContext, width: number, height: number) => void;
+  renderFrame: (gl: WebGL2RenderingContext, frame: VideoFrame, time: number, opacity: number, colors: Float32Array) => void;
+  setCursorPosition: (x: number, y: number) => void;
+  updateThemeColors: (colors: Float32Array) => void;
+  updateMedianHue: (value: number) => void;
+  updateMedianSat: (value: number) => void;
+  updateMedianBright: (value: number) => void;
+}
+
 // Dynamic import helper for switching shaders at runtime
 
 // 😎🕶️🕶️ DYNAMIC SHADER LOADER
@@ -71,7 +83,7 @@ async function main() {
   let processor: MediaStreamTrackProcessor | null = null;
   let reader: ReadableStreamDefaultReader<VideoFrame> | null = null;
   let stopped = false;
-  let renderer: any = null;
+  let renderer: ShaderRenderer | null = null;
   let glForCleanup: WebGL2RenderingContext | null = null;
   let latestFrame: VideoFrame | null = null;
   let rafId = 0;
@@ -177,7 +189,7 @@ async function main() {
 
       const previousRenderer = renderer;
       renderer = nextRenderer;
-      previousRenderer?.destroy(gl);
+      previousRenderer?.destroy(gl!);
       console.log('Overlay: Shader renderer initialized successfully');
 
       // 3. Resize to current canvas size
@@ -186,7 +198,7 @@ async function main() {
       const h = window.innerHeight;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
-      renderer.resize(gl, canvas.width, canvas.height);
+      renderer!.resize(gl!, canvas.width, canvas.height);
       
       return true;
     }
@@ -232,7 +244,7 @@ async function main() {
         // Normalize to 0.0 – 1.0 relative to the shader window viewport
         const nx = pos.x / window.innerWidth;
         const ny = pos.y / window.innerHeight;
-        renderer.setCursorPosition(nx, ny);
+        renderer?.setCursorPosition(nx, ny);
       });
       console.log('Custom cursor: listening for mouse position');
     }
@@ -280,10 +292,10 @@ async function main() {
           // Last float is the median brightness (0.0–1.0)
           currentMedianBright = colors[17 * 3 + 2];
           // Notify renderer that colors changed (it will pick them up on next renderFrame)
-          renderer.updateThemeColors(currentThemeColors);
-          renderer.updateMedianHue(currentMedianHue);
-          renderer.updateMedianSat(currentMedianSat);
-          renderer.updateMedianBright(currentMedianBright);
+          renderer?.updateThemeColors(currentThemeColors);
+          renderer?.updateMedianHue(currentMedianHue);
+          renderer?.updateMedianSat(currentMedianSat);
+          renderer?.updateMedianBright(currentMedianBright);
         }
       });
     }
@@ -293,7 +305,7 @@ async function main() {
     const detectRefreshRate = (): Promise<number> => {
       return new Promise((resolve) => {
         let frameCount = 0;
-        let startTime = performance.now();
+        const startTime = performance.now();
         
         const measureFrame = () => {
           frameCount++;
@@ -404,7 +416,7 @@ async function main() {
       if (latestFrame) {
         const time = now / 1000.0;
         // Pass the currentThemeColors to the render function
-        renderer.renderFrame(gl, latestFrame, time, 1.0, currentThemeColors);
+        renderer?.renderFrame(gl!, latestFrame, time, 1.0, currentThemeColors);
         
       }
 
