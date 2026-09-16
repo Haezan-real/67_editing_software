@@ -74,6 +74,7 @@ class WindowManager {
     this.appWindow = new BrowserWindow({
       ...WINDOW_DEFAULTS,
       frame: false,
+      thickFrame: false,
       skipTaskbar: false,
       icon: WIN_ICON,
       opacity,
@@ -117,6 +118,7 @@ class WindowManager {
       x: 0,
       y: 0,
       frame: false,
+      thickFrame: false,
       hasShadow: false,
       skipTaskbar: false,
       transparent: false, //making this true kills the fps
@@ -126,6 +128,18 @@ class WindowManager {
       parent: this.appWindow,   // Locks Z-order: child always on top of parent
       focusable: false,          // Prevents overlay from stealing keyboard focus
       webPreferences: WEB_PREFERENCES,
+    });
+
+    // shaderWindow is repositioned every drag tick via setPosition(), which
+    // triggers the same spurious native resize quirk as appWindow — correct
+    // it back to the known-good size so its <canvas> never sees a false resize.
+    this.shaderWindow.on('resize', () => {
+      if (!this.isDragging || !this.dragStartWidth || !this.dragStartHeight) return;
+      if (!this.shaderWindow || this.shaderWindow.isDestroyed()) return;
+      const bounds = this.shaderWindow.getBounds();
+      if (bounds.width !== this.dragStartWidth || bounds.height !== this.dragStartHeight) {
+        this.shaderWindow.setSize(this.dragStartWidth, this.dragStartHeight, false);
+      }
     });
 
     if (this.cfg.openShaderWindowInspector) {
@@ -570,6 +584,45 @@ class WindowManager {
 
     this.ready = true;
     console.log('✅ WindowManager initialized successfully');
+
+    if (process.env.DRAG_SELFTEST === '1') {
+      this.runDragSelfTest();
+    }
+  }
+
+  // ── TEMP DIAGNOSTIC: checks whether thickFrame:false stops spurious resize ──
+  runDragSelfTest() {
+    if (!this.appWindow) return;
+    this.appWindow.on('resize', () => console.log('app RESIZE', Date.now(), this.appWindow.getBounds()));
+    if (this.shaderWindow) {
+      this.shaderWindow.on('resize', () => console.log('shader RESIZE', Date.now(), this.shaderWindow.getBounds()));
+    }
+
+    setTimeout(() => {
+      if (!this.appWindow || this.appWindow.isDestroyed()) return;
+      if (this.appWindow.isMaximized()) this.appWindow.unmaximize();
+
+      console.log('DRAG SELFTEST: static mousedown hold (no movement) for 500ms');
+      this.isDragging = true;
+      const start = this.appWindow.getBounds();
+      this.dragStartWidth = start.width;
+      this.dragStartHeight = start.height;
+
+      setTimeout(() => {
+        console.log('DRAG SELFTEST: starting simulated drag');
+        let i = 0;
+        const timer = setInterval(() => {
+          if (!this.appWindow || this.appWindow.isDestroyed() || i >= 120) {
+            clearInterval(timer);
+            this.isDragging = false;
+            console.log('DRAG SELFTEST: complete, final app bounds =', this.appWindow?.getBounds(), 'final shader bounds =', this.shaderWindow?.getBounds());
+            return;
+          }
+          this.appWindow.setPosition(start.x + i * 2, start.y + i, false);
+          i++;
+        }, 16);
+      }, 500);
+    }, 2000);
   }
 }
 
