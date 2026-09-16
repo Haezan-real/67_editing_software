@@ -11,7 +11,7 @@ const APP_TITLE = '67-editing-software-main';
 const WINDOW_DEFAULTS = { width: 1280, height: 800 };
 const WIN_PRELOAD = path.join(__dirname, 'preload.cjs');
 const WIN_ICON = path.join(__dirname, 'src/67_editing_software.ico');
-const maximize_delay = 1;
+const MAXIMIZE_DELAY_MS = 1;
 const IS_DEVELOPMENT = process.env.ELECTRON_DEV === 'true';
 const DEV_SERVER_URL = 'http://localhost:5173';
 const APP_ENTRY = path.join(__dirname, 'dist/index.html');
@@ -85,12 +85,12 @@ class WindowManager {
       setTimeout(() => {
         if (this.appWindow && !this.appWindow.isDestroyed()) {
           this.appWindow.maximize();
-          console.log(`✅ app_window maximized after ${maximize_delay}ms delay`);
+          console.log(`✅ app_window maximized after ${MAXIMIZE_DELAY_MS}ms delay`);
         }
-      }, maximize_delay);
+      }, MAXIMIZE_DELAY_MS);
     });
     
-    console.log(`✅ app_window created (regular size, will maximize after ${maximize_delay}ms)`);
+    console.log(`✅ app_window created (regular size, will maximize after ${MAXIMIZE_DELAY_MS}ms)`);
     return this.appWindow;
   }
 
@@ -140,12 +140,12 @@ class WindowManager {
       setTimeout(() => {
         if (this.appWindow && !this.appWindow.isDestroyed()) {
           this.appWindow.maximize();
-          console.log(`✅ fallback app_window maximized after ${maximize_delay}ms delay`);
+          console.log(`✅ fallback app_window maximized after ${MAXIMIZE_DELAY_MS}ms delay`);
         }
-      }, maximize_delay);
+      }, MAXIMIZE_DELAY_MS);
     });
     
-    console.log(`✅ fallback app_window created (regular size, will maximize after ${maximize_delay}ms)`);
+    console.log(`✅ fallback app_window created (regular size, will maximize after ${MAXIMIZE_DELAY_MS}ms)`);
     return this.appWindow;
   }
 

@@ -8,9 +8,9 @@ import { getSavedSizeGraph, SizeGraphPoint } from './graph';
 import { evaluateGraphWithHandles, getSavedSegmentHandleValues } from '../utils/torusGraphEasing';
 import { acquireAudioService } from '../services/audioService';
 
-const thock_volume = 0.7
-const bigWoosh_volume = 0.7
-const smallWoosh_volume = 0.7
+const THOCK_VOLUME = 0.7;
+const BIG_WOOSH_VOLUME = 0.7;
+const SMALL_WOOSH_VOLUME = 0.7;
 
 
 function getSavedHoverScale(): number {
@@ -253,7 +253,7 @@ export default function TorusMenu({
     for (let i = 0; i < items.length; i++) {
       const sectorDelay = getSectorDelay(i) * 1000; // Convert to milliseconds
       const timeoutId = window.setTimeout(() => {
-        playSound('bigWoosh', bigWoosh_volume);
+        playSound('bigWoosh', BIG_WOOSH_VOLUME);
       }, sectorDelay);
       timeouts.push(timeoutId);
     }
@@ -455,7 +455,7 @@ export default function TorusMenu({
 
   const handleSectorClick = (item: MenuItem) => {
     // 🪗 Play click sound (Web Audio API)
-    playSound('thock', thock_volume);
+    playSound('thock', THOCK_VOLUME);
     
     if (interactive) {
       item.action();
@@ -509,7 +509,7 @@ export default function TorusMenu({
             onMouseEnter={() => {
               setHoveredIndex(i);
               // 🪗 Play hover sound (Web Audio API)
-              playSound('smallWoosh', smallWoosh_volume);
+              playSound('smallWoosh', SMALL_WOOSH_VOLUME);
             }}
             onMouseLeave={() => setHoveredIndex(null)}
           >

@@ -31,7 +31,7 @@ const DEFAULT_IMAGE_DURATION = 5 * FPS;
 const WINDOW_BUTTONS_SPACING = 10; //px
 const WINDOW_BUTTONS_SIZE = 15; //px
 const TOP_BAR_MENU_BUTTONS_SPACING = 0; //px
-const header_font_size = 15;
+const HEADER_FONT_SIZE = 15;
 
 
 // Initialize modal manager permissions
@@ -690,7 +690,7 @@ function AppContent() {
 
           {/*67 editing software title*/}
           <span style={{
-            fontSize: header_font_size,
+            fontSize: HEADER_FONT_SIZE,
             color: 'var(--text-secondary)',
             fontWeight: 500,
             verticalAlign: 'bottom',
