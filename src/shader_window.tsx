@@ -84,6 +84,7 @@ async function main() {
   let resizeHandler: (() => void) | null = null;
   let beforeUnloadHandler: (() => void) | null = null;
   let trackEndedHandler: (() => void) | null = null;
+  let unsubscribeThemeColors: (() => void) | undefined;
   let pipelineCleanedUp = false;
 
   const stopPipeline = () => {
@@ -95,6 +96,8 @@ async function main() {
     if (resizeHandler) window.removeEventListener('resize', resizeHandler);
     if (beforeUnloadHandler) window.removeEventListener('beforeunload', beforeUnloadHandler);
     if (trackEndedHandler && videoTrack) videoTrack.removeEventListener('ended', trackEndedHandler);
+    unsubscribeThemeColors?.();
+    unsubscribeThemeColors = undefined;
 
     void reader?.cancel().catch(() => {});
     reader = null;
@@ -215,7 +218,25 @@ async function main() {
     window.addEventListener('resize', resizeHandler);
     console.log('CHECKPOINT: resizeCanvas configured');
 
-    //--------------------------------------------------------
+    // Theme colors must be subscribed before readiness is reported so the
+    // cached startup payload cannot be delivered before this listener exists.
+    let currentThemeColors = new Float32Array(17 * 3).fill(0.0);
+    let currentMedianHue = 0.0;
+    let currentMedianSat = 0.0;
+    let currentMedianBright = 0.0;
+
+    unsubscribeThemeColors = api?.onShaderColorsUpdate((colors: number[]) => {
+      if (colors && colors.length === 17 * 3 + 3) {
+        currentThemeColors = new Float32Array(colors.slice(0, 17 * 3));
+        currentMedianHue = colors[17 * 3];
+        currentMedianSat = colors[17 * 3 + 1];
+        currentMedianBright = colors[17 * 3 + 2];
+        renderer?.updateThemeColors(currentThemeColors);
+        renderer?.updateMedianHue(currentMedianHue);
+        renderer?.updateMedianSat(currentMedianSat);
+        renderer?.updateMedianBright(currentMedianBright);
+      }
+    });
 
     // Notify main process we're ready
     
@@ -262,35 +283,6 @@ async function main() {
       });
     }
     
-
-
-    // ── Theme Colors State ─────────────────────────────────────────────────────
-    // Default to black, will be overwritten by app window immediately
-    // Array layout: 17 colors × 3 components (51 floats) + 1 median hue + 1 median saturation + 1 median brightness = 54 total
-    let currentThemeColors = new Float32Array(17 * 3).fill(0.0);
-    let currentMedianHue = 0.0;
-    let currentMedianSat = 0.0;
-    let currentMedianBright = 0.0;
-
-    if (api) {
-      api.onShaderColorsUpdate((colors: number[]) => {
-        if (colors && colors.length === 17 * 3 + 3) {
-          // First 51 floats are the theme colors
-          currentThemeColors = new Float32Array(colors.slice(0, 17 * 3));
-          // Next float is the median hue (0.0–1.0)
-          currentMedianHue = colors[17 * 3];
-          // Next float is the median saturation (0.0–1.0)
-          currentMedianSat = colors[17 * 3 + 1];
-          // Last float is the median brightness (0.0–1.0)
-          currentMedianBright = colors[17 * 3 + 2];
-          // Notify renderer that colors changed (it will pick them up on next renderFrame)
-          renderer?.updateThemeColors(currentThemeColors);
-          renderer?.updateMedianHue(currentMedianHue);
-          renderer?.updateMedianSat(currentMedianSat);
-          renderer?.updateMedianBright(currentMedianBright);
-        }
-      });
-    }
 
 
     // 🖥️📺 Detect monitor refresh rate by measuring requestAnimationFrame timing

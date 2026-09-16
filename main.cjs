@@ -51,6 +51,7 @@ class WindowManager {
     this.dragOffsetY = 0;
     this.isSyncing = false;
     this.ready = false;
+    this.latestShaderColors = null;
   }
 
   loadWindow(window, developmentPath, productionPath) {
@@ -354,6 +355,9 @@ class WindowManager {
           console.error('🚨 Failed to get source ID:', e.message);
         }
       }
+      if (this.latestShaderColors) {
+        event.sender.send('shader-colors-update', this.latestShaderColors);
+      }
     });
 
     // Forward mouse position from app_window to shader_window for custom cursor
@@ -375,6 +379,7 @@ class WindowManager {
     // Forward theme colors from app_window to shader_window for dynamic effects and UI masking
     ipcMain.on('update-shader-colors', (_event, colorArray) => {
       if (!Array.isArray(colorArray) || !colorArray.every(color => Number.isFinite(color))) return;
+      this.latestShaderColors = colorArray;
       if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
         this.shaderWindow.webContents.send('shader-colors-update', colorArray);
       }
