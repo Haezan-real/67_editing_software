@@ -34,6 +34,23 @@ const TAB_NAMES: Record<SettingsTab, string> = {
   components: "Components",
 };
 
+function isSettingsTab(value: unknown): value is SettingsTab {
+  return typeof value === 'string' && value in TAB_NAMES;
+}
+
+function getInitialSettingsTab(initialPageData: unknown): SettingsTab {
+  const requestedTab = (initialPageData as { tab?: unknown } | undefined)?.tab;
+  if (isSettingsTab(requestedTab)) return requestedTab;
+
+  try {
+    const savedTab = window.localStorage.getItem('juicecut.modal.settings.pageState');
+    const parsedTab: unknown = savedTab ? JSON.parse(savedTab) : null;
+    if (isSettingsTab(parsedTab)) return parsedTab;
+  } catch {}
+
+  return 'sliders';
+}
+
 interface Props {
   onClose?: () => void;
   initialPageData?: any;
@@ -116,13 +133,7 @@ function SliderSetting({ label, value, min, max, onChange, onReset, formatValue,
 export default function Settings(props: Props) { return SettingsShell(props); }
 
 function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
-    if (initialPageData?.tab === "sliders") return "sliders";
-    if (initialPageData?.tab === "checkboxes") return "checkboxes";
-    if (initialPageData?.tab === "shortcuts") return "shortcuts";
-    if (initialPageData?.tab === "components") return "components";
-    return "sliders";
-  });
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => getInitialSettingsTab(initialPageData));
   
   // Map tab keys to display names
   const getTabLabel = (tab: SettingsTab): string => TAB_NAMES[tab];
@@ -191,11 +202,6 @@ function SettingsShell({ onClose, initialPageData, initialScroll }: Props) {
       persistenceKey="settings"
       pageState={activeTab}
       onSavePageState={() => {}}
-      onRestorePageState={(state) => {
-        if (state && TAB_NAMES[state as SettingsTab]) {
-          setActiveTab(state as SettingsTab);
-        }
-      }}
       body={
       <div className="settings-body" ref={panelRef}>
         <nav className="settings-tabs" aria-label="Settings sections">
