@@ -311,6 +311,9 @@ class WindowManager {
   // ── IPC Handlers ─────────────────────────────────────────────────────────
 
   setupIPCHandlers() {
+    const isAppWindowSender = (event) => this.appWindow && !this.appWindow.isDestroyed() && event.sender === this.appWindow.webContents;
+    const isValidScreenPosition = (position) => position && Number.isFinite(position.x) && Number.isFinite(position.y);
+
     // Window controls
     ipcMain.on('window-minimize', () => this.appWindow.minimize());
     ipcMain.on('window-maximize', () => {
@@ -332,6 +335,26 @@ class WindowManager {
         this.shaderWindow.close();
       }
       this.appWindow.close();
+    });
+
+    ipcMain.on('window-drag-start', (event, position) => {
+      if (!isAppWindowSender(event) || !isValidScreenPosition(position) || this.appWindow.isMaximized()) return;
+      const bounds = this.appWindow.getBounds();
+      this.isDragging = true;
+      this.dragOffsetX = position.x - bounds.x;
+      this.dragOffsetY = position.y - bounds.y;
+    });
+
+    ipcMain.on('window-drag-move', (event, position) => {
+      if (!isAppWindowSender(event) || !this.isDragging || !isValidScreenPosition(position)) return;
+      this.appWindow.setPosition(
+        Math.round(position.x - this.dragOffsetX),
+        Math.round(position.y - this.dragOffsetY),
+      );
+    });
+
+    ipcMain.on('window-drag-end', (event) => {
+      if (isAppWindowSender(event)) this.isDragging = false;
     });
 
     // Runtime toggle for app_window click-through
@@ -422,6 +445,7 @@ class WindowManager {
       this.shaderWindow = null;
     });
     this.appWindow?.on('closed', () => {
+      this.isDragging = false;
       this.appWindow = null;
     });
   }

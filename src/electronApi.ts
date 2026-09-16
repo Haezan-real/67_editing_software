@@ -9,6 +9,9 @@ export interface ElectronAPI {
   toggleFullscreen: () => void;
   closeWindow: () => void;
   toggleAppClickthrough: () => void;
+  beginWindowDrag: (position: CursorPosition) => void;
+  moveWindowDrag: (position: CursorPosition) => void;
+  endWindowDrag: () => void;
   requestShaderChange: (shaderName: string) => void;
   sendCursorPosition: (position: CursorPosition) => void;
   sendShaderFps: (fps: number) => void;

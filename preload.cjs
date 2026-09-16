@@ -52,6 +52,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleFullscreen: () => ipcRenderer.send('window-fullscreen'),
   closeWindow: () => ipcRenderer.send('window-close'),
   toggleAppClickthrough: () => ipcRenderer.send('toggle-app-clickthrough'),
+  beginWindowDrag: (position) => {
+    if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) {
+      ipcRenderer.send('window-drag-start', { x: position.x, y: position.y });
+    }
+  },
+  moveWindowDrag: (position) => {
+    if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) {
+      ipcRenderer.send('window-drag-move', { x: position.x, y: position.y });
+    }
+  },
+  endWindowDrag: () => ipcRenderer.send('window-drag-end'),
   requestShaderChange: (shaderName) => {
     if (typeof shaderName === 'string' && shaderName.length > 0) {
       ipcRenderer.send('change-shader', shaderName);

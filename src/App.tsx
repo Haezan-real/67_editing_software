@@ -131,6 +131,7 @@ function AppContent() {
   const [shaderFps, setShaderFps] = useState<number | null>(null);
   const [shaderEnabled, setShaderEnabled] = useState(false);
   const isMountedRef = useRef(true);
+  const windowDragActiveRef = useRef(false);
   const mediaItemsRef = useRef(mediaItems);
   mediaItemsRef.current = mediaItems;
 
@@ -504,6 +505,40 @@ function AppContent() {
     if (command === 'close') api?.closeWindow();
   }, []);
 
+  const endWindowDrag = useCallback(() => {
+    if (!windowDragActiveRef.current) return;
+    windowDragActiveRef.current = false;
+    window.electronAPI?.endWindowDrag();
+  }, []);
+
+  const handleWindowDragStart = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || event.target instanceof Element && event.target.closest('button, input, select, textarea, a')) return;
+    const api = window.electronAPI;
+    if (!api) return;
+    windowDragActiveRef.current = true;
+    api.beginWindowDrag({ x: event.screenX, y: event.screenY });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  useEffect(() => {
+    const moveWindowDrag = (event: PointerEvent) => {
+      if (windowDragActiveRef.current) {
+        window.electronAPI?.moveWindowDrag({ x: event.screenX, y: event.screenY });
+      }
+    };
+    window.addEventListener('pointermove', moveWindowDrag);
+    window.addEventListener('pointerup', endWindowDrag);
+    window.addEventListener('pointercancel', endWindowDrag);
+    window.addEventListener('blur', endWindowDrag);
+    return () => {
+      window.removeEventListener('pointermove', moveWindowDrag);
+      window.removeEventListener('pointerup', endWindowDrag);
+      window.removeEventListener('pointercancel', endWindowDrag);
+      window.removeEventListener('blur', endWindowDrag);
+      endWindowDrag();
+    };
+  }, [endWindowDrag]);
+
   // Track mouse position for custom cursor overlay (sent to main process → forwarded to shader_window)
   // Listen to BOTH mousemove and pointermove — pointermove is needed because
   // the Splitter component uses pointer events for dragging, and during a
@@ -661,7 +696,7 @@ function AppContent() {
           <audio key={item.id} id={`aud-${item.id}`} src={item.src} style={{ display: 'none' }} preload="auto" />
         ) : null
       )}
-      <header className="app-header">
+      <header className="app-header" onPointerDown={handleWindowDragStart}>
         <div className="app-logo">
           <img src="/src/67_editing_software.ico" alt="67 editing software" style={{ width: 22, height: 22, transform: 'translateY(0px)', }} />
         

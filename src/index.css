@@ -122,8 +122,7 @@ html, body, #root {
   background: var(--bg-panel);
   border-bottom: var(--border-width) solid var(--border);
   flex-shrink: 0;
-  -webkit-app-region: drag;
-  /* cursor: none is now handled by body.cursor-hidden */
+  touch-action: none;
   -webkit-user-select: none;
   position: relative;
   transition:
@@ -133,7 +132,6 @@ html, body, #root {
 
 .app-header button,
 .app-header .status-dot {
-  -webkit-app-region: no-drag;
   position: relative;
   z-index: 2;
 }
