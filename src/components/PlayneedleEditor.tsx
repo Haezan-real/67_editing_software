@@ -6,6 +6,7 @@ import { showToast } from './Toast';
 import { Slider } from './Adjustables';
 import { modalManager } from '../state/modalManager';
 import { dispatchSettingsChanged } from '../state/settingsEvents';
+import { DEFAULT_PLAYNEEDLE_WIDTH, MAX_PLAYNEEDLE_WIDTH, MIN_PLAYNEEDLE_WIDTH, PLAYNEEDLE_WIDTH_STORAGE_KEY } from '../domain/playneedleSettings';
 
 // Playneedle Editor modal caps
 const EDITOR_MAX_WIDTH = '480px';
@@ -22,7 +23,7 @@ const DEFAULT_VALUES = {
   pnVo: 0.147,
   pnHb: 0.8,
   pnHr: 1,
-  pnWidth: 20,
+  pnWidth: DEFAULT_PLAYNEEDLE_WIDTH,
 } as const;
 
 
@@ -85,11 +86,10 @@ function getSavedPnHr(): number {
 // Retrieve saved playneedle width (in pixels) for the editor UI
 function getSavedPnWidth(): number {
   try {
-    const v = window.localStorage.getItem('juicecut.settings.playneedle_width');
-    if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 0 && n <= 100) return n; }
+    const v = window.localStorage.getItem(PLAYNEEDLE_WIDTH_STORAGE_KEY);
+    if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= MIN_PLAYNEEDLE_WIDTH && n <= MAX_PLAYNEEDLE_WIDTH) return n; }
   } catch {}
-  // Default width matches the current hard‑coded value used elsewhere
-  return 260;
+  return DEFAULT_VALUES.pnWidth;
 }
 
 export function OpenPlayneedleEditor(onCloseCallback?: () => void) {
@@ -168,7 +168,7 @@ export default function PlayneedleEditorModal({ onClose, onBack }: PlayneedleEdi
 
   // Persist width changes
   useEffect(() => {
-    try { window.localStorage.setItem('juicecut.settings.playneedle_width', String(pnWidth)); dispatchSettingsChanged('playneedle_width', pnWidth); } catch {}
+    try { window.localStorage.setItem(PLAYNEEDLE_WIDTH_STORAGE_KEY, String(pnWidth)); dispatchSettingsChanged('playneedle_width', pnWidth); } catch {}
   }, [pnWidth]);
 
   const params = useMemo(() => ({
@@ -296,7 +296,7 @@ export default function PlayneedleEditorModal({ onClose, onBack }: PlayneedleEdi
                 label={<span>Playneedle width (px)</span>}
                 value={pnWidth}
                   min={0}
-                max={100}
+                max={MAX_PLAYNEEDLE_WIDTH}
                 step={1}
                 onChange={setPnWidth}
                  onReset={() => setPnWidth(DEFAULT_VALUES.pnWidth)}

@@ -7,6 +7,7 @@ import TorusMenu from './TorusMenu';
 import Waveform from './Waveform';
 import ThumbnailRoll from './ThumbnailRoll';
 import { isWheelShortcutMatch } from './shortcuts';
+import { DEFAULT_PLAYNEEDLE_WIDTH, MAX_PLAYNEEDLE_WIDTH, MIN_PLAYNEEDLE_WIDTH, PLAYNEEDLE_WIDTH_STORAGE_KEY } from '../domain/playneedleSettings';
 import FormulaPlayneedle from './FormulaPlayneedle';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
 
@@ -38,11 +39,10 @@ const PX_PER_FRAME = 4;
 // Retrieve saved playneedle width (in pixels) for timeline preview
 function getSavedPnWidth(): number {
   try {
-    const v = window.localStorage.getItem('juicecut.settings.playneedle_width');
-    if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 0 && n <= 500) return n; }
+    const v = window.localStorage.getItem(PLAYNEEDLE_WIDTH_STORAGE_KEY);
+    if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= MIN_PLAYNEEDLE_WIDTH && n <= MAX_PLAYNEEDLE_WIDTH) return n; }
   } catch {}
-  // Default matches editor preview width
-  return 260;
+  return DEFAULT_PLAYNEEDLE_WIDTH;
 }
 
 function getSavedHoverScale(): number {
