@@ -11,6 +11,7 @@ import { Slider } from './Adjustables';
 import { RotateCcw, Plus } from 'lucide-react';
 import { isShortcutMatch, getShortcutKeys as scGetKeys, updateShortcuts as scUpdate, resetDefaultShortcuts as scReset, SHORTCUT_LABELS } from './shortcuts';
 import { SETTINGS_CHANGED_EVENT } from '../state/settingsEvents';
+import { DEFAULT_TORUS_SETTINGS } from '../state/settingsDefaults';
 
 // Torus Menu Editor modal dimensions
 const EDITOR_WIDTH = 620; //default 620px, can be wider if needed
@@ -67,7 +68,7 @@ function getSavedDuration(): number {
     const v = window.localStorage.getItem('juicecut.settings.torusDuration');
     if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 0 && n <= 2000) return n; }
   } catch {}
-  return 300;
+  return DEFAULT_TORUS_SETTINGS.duration;
 }
 
 function getSavedDelay(): number {
@@ -75,7 +76,7 @@ function getSavedDelay(): number {
     const v = window.localStorage.getItem('juicecut.settings.torusDelay');
     if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= -1000 && n <= 1000) return n; }
   } catch {}
-  return 0;
+  return DEFAULT_TORUS_SETTINGS.delay;
 }
 
 function getSavedHoverScale(): number {
@@ -83,7 +84,7 @@ function getSavedHoverScale(): number {
     const v = window.localStorage.getItem('juicecut.settings.torusHoverScale');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 1 && n <= 1.5) return n; }
   } catch {}
-  return 1.08;
+  return DEFAULT_TORUS_SETTINGS.hoverScale;
 }
 
 // Logarithmic mapping for delay slider: slider 0..1000 → delay -1000..1000

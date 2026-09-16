@@ -7,6 +7,7 @@ import { Scissors, ChevronLeft, ChevronRight, Move } from 'lucide-react';
 import { getSavedSizeGraph, SizeGraphPoint } from './graph';
 import { evaluateGraphWithHandles, getSavedSegmentHandleValues } from '../utils/torusGraphEasing';
 import { acquireAudioService } from '../services/audioService';
+import { DEFAULT_TORUS_SETTINGS } from '../state/settingsDefaults';
 
 const THOCK_VOLUME = 0.7;
 const BIG_WOOSH_VOLUME = 0.7;
@@ -21,7 +22,7 @@ function getSavedHoverScale(): number {
       if (!isNaN(n) && n >= 1 && n <= 1.5) return n;
     }
   } catch {}
-  return 1.08;
+  return DEFAULT_TORUS_SETTINGS.hoverScale;
 }
 
 type TorusTarget =
@@ -112,7 +113,7 @@ function getSavedDuration(): number {
     const v = window.localStorage.getItem('juicecut.settings.torusDuration');
     if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 0 && n <= 2000) return n; }
   } catch {}
-  return 300;
+  return DEFAULT_TORUS_SETTINGS.duration;
 }
 
 function getSavedDelay(): number {
@@ -120,7 +121,7 @@ function getSavedDelay(): number {
     const v = window.localStorage.getItem('juicecut.settings.torusDelay');
     if (v !== null) { const n = parseInt(v, 10); if (!isNaN(n) && n >= -1000 && n <= 1000) return n; }
   } catch {}
-  return 0;
+  return DEFAULT_TORUS_SETTINGS.delay;
 }
 
 export default function TorusMenu({

@@ -3,6 +3,7 @@ import { Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react';
 import type { TimelineClip, MediaItem } from '../types';
 import { formatTimecode } from '../types';
 import { SETTINGS_CHANGED_EVENT } from '../state/settingsEvents';
+import { DEFAULT_SETTINGS } from '../state/settingsDefaults';
 
 interface Props {
   clips: TimelineClip[];
@@ -20,15 +21,15 @@ export default function ViewerControls({
   onPlayPause, onSeek, style
 }: Props) {
   const [controlsType, setControlsType] = useState<string>(() => {
-    try { return window.localStorage.getItem('juicecut.settings.viewerControlsType') || 'compact'; } catch { return 'compact'; }
+    try { return window.localStorage.getItem('juicecut.settings.viewerControlsType') || DEFAULT_SETTINGS.viewerControlsType; } catch { return DEFAULT_SETTINGS.viewerControlsType; }
   });
   const [timecodePanel, setTimecodePanel] = useState<string>(() => {
-    try { return window.localStorage.getItem('juicecut.settings.timecodePanel') || 'both'; } catch { return 'both'; }
+    try { return window.localStorage.getItem('juicecut.settings.timecodePanel') || DEFAULT_SETTINGS.timecodePanel; } catch { return DEFAULT_SETTINGS.timecodePanel; }
   });
 
   useEffect(() => {
     const handler = () => {
-      try { setControlsType(window.localStorage.getItem('juicecut.settings.viewerControlsType') || 'compact'); } catch {}
+      try { setControlsType(window.localStorage.getItem('juicecut.settings.viewerControlsType') || DEFAULT_SETTINGS.viewerControlsType); } catch { setControlsType(DEFAULT_SETTINGS.viewerControlsType); }
     };
     window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
     return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);
@@ -36,7 +37,7 @@ export default function ViewerControls({
 
   useEffect(() => {
     const handler = () => {
-      try { setTimecodePanel(window.localStorage.getItem('juicecut.settings.timecodePanel') || 'both'); } catch {}
+      try { setTimecodePanel(window.localStorage.getItem('juicecut.settings.timecodePanel') || DEFAULT_SETTINGS.timecodePanel); } catch { setTimecodePanel(DEFAULT_SETTINGS.timecodePanel); }
     };
     window.addEventListener(SETTINGS_CHANGED_EVENT, handler);
     return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, handler);

@@ -10,6 +10,7 @@ import { isWheelShortcutMatch } from './shortcuts';
 import { DEFAULT_PLAYNEEDLE_WIDTH, MAX_PLAYNEEDLE_WIDTH, MIN_PLAYNEEDLE_WIDTH, PLAYNEEDLE_WIDTH_STORAGE_KEY } from '../domain/playneedleSettings';
 import FormulaPlayneedle from './FormulaPlayneedle';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
+import { DEFAULT_SETTINGS, DEFAULT_TORUS_SETTINGS } from '../state/settingsDefaults';
 
 interface Props {
   clips: TimelineClip[];
@@ -50,7 +51,7 @@ function getSavedHoverScale(): number {
     const v = window.localStorage.getItem('juicecut.settings.torusHoverScale');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 1 && n <= 1.5) return n; }
   } catch {}
-  return 1.08;
+  return DEFAULT_TORUS_SETTINGS.hoverScale;
 }
 
 function frameToX(frame: number, zoom: number) { return frame * PX_PER_FRAME * zoom; }
@@ -80,13 +81,13 @@ function getPlayneedleParams(): PlayneedleFormulaParams {
     try { const v = window.localStorage.getItem(`juicecut.settings.playneedle_${key}`); return v !== null ? Number(v) : fallback; } catch { return fallback; }
   };
   return {
-    t:   get('t',   0.092),
-    j:   get('j',   0.049),
-    k:   get('k',   103),
-    s:   get('s',   16.4),
-    v_o: get('v_o', 0.4),
-    h_b: get('h_b', 0.8),
-    h_r: get('h_r', 1),
+    t:   get('t',   DEFAULT_SETTINGS.playneedle_t),
+    j:   get('j',   DEFAULT_SETTINGS.playneedle_j),
+    k:   get('k',   DEFAULT_SETTINGS.playneedle_k),
+    s:   get('s',   DEFAULT_SETTINGS.playneedle_s),
+    v_o: get('v_o', DEFAULT_SETTINGS.playneedle_v_o),
+    h_b: get('h_b', DEFAULT_SETTINGS.playneedle_h_b),
+    h_r: get('h_r', DEFAULT_SETTINGS.playneedle_h_r),
   };
 }
 
@@ -114,25 +115,25 @@ export default function Timeline({
   useEffect(() => { playheadRef.current = playhead; }, [playhead]);
 
   const getScrollSmoothFactor = () => {
-    try { const v = window.localStorage.getItem('juicecut.settings.scrollSmooth'); return v ? Number(v) : 50; } catch { return 50; }
+    try { const v = window.localStorage.getItem('juicecut.settings.scrollSmooth'); return v ? Number(v) : DEFAULT_SETTINGS.scrollSmooth; } catch { return DEFAULT_SETTINGS.scrollSmooth; }
   };
   const getScrollAmount = () => {
-    try { const v = window.localStorage.getItem('juicecut.settings.scrollAmount'); return v ? Number(v) : 100; } catch { return 100; }
+    try { const v = window.localStorage.getItem('juicecut.settings.scrollAmount'); return v ? Number(v) : DEFAULT_SETTINGS.scrollAmount; } catch { return DEFAULT_SETTINGS.scrollAmount; }
   };
   const getScrollZoomAmount = () => {
-    try { const v = window.localStorage.getItem('juicecut.settings.scrollZoomAmount'); return v ? Number(v) : 25; } catch { return 25; }
+    try { const v = window.localStorage.getItem('juicecut.settings.scrollZoomAmount'); return v ? Number(v) : DEFAULT_SETTINGS.scrollZoomAmount; } catch { return DEFAULT_SETTINGS.scrollZoomAmount; }
   };
   const getScrollZoomSmoothness = () => {
-    try { const v = window.localStorage.getItem('juicecut.settings.scrollZoomSmoothness'); return v ? Number(v) : 70; } catch { return 70; }
+    try { const v = window.localStorage.getItem('juicecut.settings.scrollZoomSmoothness'); return v ? Number(v) : DEFAULT_SETTINGS.scrollZoomSmoothness; } catch { return DEFAULT_SETTINGS.scrollZoomSmoothness; }
   };
   const getCancelZoomOnScroll = () => {
     try { const v = window.localStorage.getItem('juicecut.settings.cancelZoomOnScroll'); return v === null ? true : v === 'true'; } catch { return true; }
   };
   const getTorusScrollingDisabled = (): 'whole torus menu' | 'annular sectors only' | 'none' => {
-    try { return (window.localStorage.getItem('juicecut.settings.torusScrollingDisabled') as 'whole torus menu' | 'annular sectors only' | 'none') || 'none'; } catch { return 'none'; }
+    try { return (window.localStorage.getItem('juicecut.settings.torusScrollingDisabled') as 'whole torus menu' | 'annular sectors only' | 'none') || DEFAULT_SETTINGS.torusScrollingDisabled; } catch { return DEFAULT_SETTINGS.torusScrollingDisabled; }
   };
   const [timecodePanel, setTimecodePanel] = useState<string>(() => {
-    try { return window.localStorage.getItem('juicecut.settings.timecodePanel') || 'both'; } catch { return 'both'; }
+    try { return window.localStorage.getItem('juicecut.settings.timecodePanel') || DEFAULT_SETTINGS.timecodePanel; } catch { return DEFAULT_SETTINGS.timecodePanel; }
   });
   const [playneedleParams, setPlayneedleParams] = useState<PlayneedleFormulaParams>(getPlayneedleParams);
   // Reactive playneedle width (re-reads when the setting changes)

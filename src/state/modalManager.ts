@@ -1,4 +1,5 @@
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './settingsEvents';
+import { DEFAULT_SETTINGS } from './settingsDefaults';
 
 export type ModalType = 'settings' | 'styles' | 'export' | 'torusMenuEditor' | 'playneedleEditor' | 'colorPicker' | 'rollDialog' | 'shaderSelector';
 
@@ -35,9 +36,9 @@ class ModalManager {
   private state: ModalManagerState = {
     openModals: [],
     settings: {
-      allowMultipleMenus: true,
+      allowMultipleMenus: DEFAULT_SETTINGS.allowMultipleMenus,
       allowDuplicateMenus: false,
-      allowEditsWhenMenuOpen: true,
+      allowEditsWhenMenuOpen: DEFAULT_SETTINGS.allowEditsWhenMenuOpen,
     }
   };
   

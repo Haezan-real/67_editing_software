@@ -7,6 +7,7 @@ import { Slider } from './Adjustables';
 import { modalManager } from '../state/modalManager';
 import { dispatchSettingsChanged } from '../state/settingsEvents';
 import { DEFAULT_PLAYNEEDLE_WIDTH, MAX_PLAYNEEDLE_WIDTH, MIN_PLAYNEEDLE_WIDTH, PLAYNEEDLE_WIDTH_STORAGE_KEY } from '../domain/playneedleSettings';
+import { DEFAULT_SETTINGS } from '../state/settingsDefaults';
 
 // Playneedle Editor modal caps
 const EDITOR_MAX_WIDTH = '480px';
@@ -16,13 +17,13 @@ const PADDING_LEFT = 10;
 
 // Default values for all playneedle sliders
 const DEFAULT_VALUES = {
-  pnT: 0.092,
-  pnJ: 0.049,
-  pnK: 103,
-  pnS: 28.0,
-  pnVo: 0.147,
-  pnHb: 0.8,
-  pnHr: 1,
+  pnT: DEFAULT_SETTINGS.playneedle_t,
+  pnJ: DEFAULT_SETTINGS.playneedle_j,
+  pnK: DEFAULT_SETTINGS.playneedle_k,
+  pnS: DEFAULT_SETTINGS.playneedle_s,
+  pnVo: DEFAULT_SETTINGS.playneedle_v_o,
+  pnHb: DEFAULT_SETTINGS.playneedle_h_b,
+  pnHr: DEFAULT_SETTINGS.playneedle_h_r,
   pnWidth: DEFAULT_PLAYNEEDLE_WIDTH,
 } as const;
 
@@ -32,7 +33,7 @@ function getSavedPnT(): number {
     const v = window.localStorage.getItem('juicecut.settings.playneedle_t');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 0 && n <= 0.5) return n; }
   } catch {}
-  return 0.092;
+  return DEFAULT_VALUES.pnT;
 }
 
 function getSavedPnJ(): number {
@@ -40,7 +41,7 @@ function getSavedPnJ(): number {
     const v = window.localStorage.getItem('juicecut.settings.playneedle_j');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= -0.05 && n <= 0.25) return n; }
   } catch {}
-  return 0.049;
+  return DEFAULT_VALUES.pnJ;
 }
 
 function getSavedPnK(): number {
@@ -48,7 +49,7 @@ function getSavedPnK(): number {
     const v = window.localStorage.getItem('juicecut.settings.playneedle_k');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 10 && n <= 1000) return n; }
   } catch {}
-  return 103;
+  return DEFAULT_VALUES.pnK;
 }
 
 function getSavedPnS(): number {
@@ -56,7 +57,7 @@ function getSavedPnS(): number {
     const v = window.localStorage.getItem('juicecut.settings.playneedle_s');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 10 && n <= 50) return n; }
   } catch {}
-  return 16.4;
+  return DEFAULT_VALUES.pnS;
 }
 
 function getSavedPnVo(): number {
@@ -64,7 +65,7 @@ function getSavedPnVo(): number {
     const v = window.localStorage.getItem('juicecut.settings.playneedle_v_o');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 0 && n <= 1) return n; }
   } catch {}
-  return 0.4;
+  return DEFAULT_VALUES.pnVo;
 }
 
 function getSavedPnHb(): number {
@@ -72,7 +73,7 @@ function getSavedPnHb(): number {
     const v = window.localStorage.getItem('juicecut.settings.playneedle_h_b');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 0.5 && n <= 1) return n; }
   } catch {}
-  return 0.8;
+  return DEFAULT_VALUES.pnHb;
 }
 
 function getSavedPnHr(): number {
@@ -80,7 +81,7 @@ function getSavedPnHr(): number {
     const v = window.localStorage.getItem('juicecut.settings.playneedle_h_r');
     if (v !== null) { const n = parseFloat(v); if (!isNaN(n) && n >= 0 && n <= 1) return n; }
   } catch {}
-  return 1;
+  return DEFAULT_VALUES.pnHr;
 }
 
 // Retrieve saved playneedle width (in pixels) for the editor UI

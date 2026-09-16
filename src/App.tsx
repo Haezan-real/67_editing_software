@@ -20,6 +20,7 @@ import {
 import { HistoryProvider, useHistory, type AppSnapshot } from './state/history';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './state/settingsEvents';
 import { useLayoutSettings } from './hooks/useLayoutSettings';
+import { DEFAULT_SETTINGS } from './state/settingsDefaults';
 import { useExportJob } from './hooks/useExportJob';
 import { useTimelineEditor } from './hooks/useTimelineEditor';
 import { getMediaType } from './domain/mediaIngestion';
@@ -194,9 +195,9 @@ function AppContent() {
   const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState(() => {
     try {
       const value = window.localStorage.getItem('juicecut.settings.allowEditsWhenMenuOpen');
-      return value === null ? true : value === 'true';
+      return value === null ? DEFAULT_SETTINGS.allowEditsWhenMenuOpen : value === 'true';
     } catch {
-      return true;
+      return DEFAULT_SETTINGS.allowEditsWhenMenuOpen;
     }
   });
 
@@ -270,7 +271,7 @@ function AppContent() {
   useEffect(() => {
     try {
       const v = window.localStorage.getItem('juicecut.settings.guiScale');
-      const scale = v ? Number(v) / 100 : 1;
+      const scale = v ? Number(v) / 100 : DEFAULT_SETTINGS.guiScale / 100;
       document.documentElement.style.setProperty('--gui-scale', scale.toString());
     } catch {}
   }, []);

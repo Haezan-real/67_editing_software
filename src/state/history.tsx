@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useRef, useState, ReactNode } from 'react';
+import { DEFAULT_SETTINGS } from './settingsDefaults';
 
 export type AppSnapshot = Record<string, unknown>; // opaque snapshot type (App decides structure)
 
@@ -33,9 +34,9 @@ type HistoryStack<T> = {
 function readIncludeResize(): boolean {
   try {
     const v = window.localStorage.getItem('juicecut.settings.includeResizeInUndo');
-    return v === null ? true : v === 'true';
+    return v === null ? DEFAULT_SETTINGS.includeResizeInUndo : v === 'true';
   } catch {
-    return true;
+    return DEFAULT_SETTINGS.includeResizeInUndo;
   }
 }
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
+import { DEFAULT_SETTINGS } from '../state/settingsDefaults';
 
 interface DraggableModalProps {
   /** The title text shown in the header */
@@ -56,9 +57,9 @@ export default function DraggableModal({
   const [allowEditsWhenMenuOpen, setAllowEditsWhenMenuOpen] = useState(() => {
     try {
       const value = window.localStorage.getItem('juicecut.settings.allowEditsWhenMenuOpen');
-      return value === null ? true : value === 'true';
+      return value === null ? DEFAULT_SETTINGS.allowEditsWhenMenuOpen : value === 'true';
     } catch {
-      return true;
+      return DEFAULT_SETTINGS.allowEditsWhenMenuOpen;
     }
   });
   const dragOffset = useRef({ x: 0, y: 0 });

@@ -1,38 +1,6 @@
 import { useEffect, useState } from 'react';
 import { dispatchSettingsChanged } from './settingsEvents';
-
-export type ZoomEpicenter = 'playneedle' | 'middle' | 'cursor';
-export type ViewerControlsType = 'compact' | 'centered';
-export type TimecodePanel = 'timeline' | 'viewer' | 'both' | 'none';
-export type TorusScrollingDisabled = 'whole torus menu' | 'annular sectors only' | 'none';
-
-export interface SettingsValues {
-  guiScale: number;
-  includeResizeInUndo: boolean;
-  zoomEpicenter: ZoomEpicenter;
-  scrollSmooth: number;
-  scrollAmount: number;
-  scrollZoomAmount: number;
-  scrollZoomSmoothness: number;
-  viewerControlsType: ViewerControlsType;
-  timecodePanel: TimecodePanel;
-  torusScrollingDisabled: TorusScrollingDisabled;
-  elevatedPanelDarken: number;
-  elevatedPanelBlur: number;
-  draggableHeaderButtons: boolean;
-  allowMultipleMenus: boolean;
-  allowEditsWhenMenuOpen: boolean;
-  executeHeaderButtonsOnDrag: boolean;
-  playneedle_t: number;
-  playneedle_j: number;
-  playneedle_k: number;
-  playneedle_s: number;
-  playneedle_v_o: number;
-  playneedle_h_b: number;
-  playneedle_h_r: number;
-  playneedleIconHorizontalStretch: number;
-  colorTransitionDuration: number;
-}
+import { DEFAULT_SETTINGS, type SettingsValues, type TimecodePanel, type TorusScrollingDisabled, type ViewerControlsType, type ZoomEpicenter } from './settingsDefaults';
 
 type NumericSetting = { kind: 'number'; default: number; min: number; max: number };
 type BooleanSetting = { kind: 'boolean'; default: boolean };
@@ -40,31 +8,31 @@ type EnumSetting<T extends string> = { kind: 'enum'; default: T; values: readonl
 type SettingSchema = { [K in keyof SettingsValues]: NumericSetting | BooleanSetting | EnumSetting<string> };
 
 export const SETTINGS_SCHEMA: SettingSchema = {
-  guiScale: { kind: 'number', default: 100, min: 50, max: 200 },
-  includeResizeInUndo: { kind: 'boolean', default: true },
-  zoomEpicenter: { kind: 'enum', default: 'playneedle', values: ['playneedle', 'middle', 'cursor'] },
-  scrollSmooth: { kind: 'number', default: 50, min: 0, max: 100 },
-  scrollAmount: { kind: 'number', default: 100, min: 1, max: 400 },
-  scrollZoomAmount: { kind: 'number', default: 25, min: 1, max: 100 },
-  scrollZoomSmoothness: { kind: 'number', default: 70, min: 0, max: 100 },
-  viewerControlsType: { kind: 'enum', default: 'compact', values: ['compact', 'centered'] },
-  timecodePanel: { kind: 'enum', default: 'both', values: ['timeline', 'viewer', 'both', 'none'] },
-  torusScrollingDisabled: { kind: 'enum', default: 'none', values: ['whole torus menu', 'annular sectors only', 'none'] },
-  elevatedPanelDarken: { kind: 'number', default: 50, min: 0, max: 100 },
-  elevatedPanelBlur: { kind: 'number', default: 0, min: 0, max: 100 },
-  draggableHeaderButtons: { kind: 'boolean', default: true },
-  allowMultipleMenus: { kind: 'boolean', default: true },
-  allowEditsWhenMenuOpen: { kind: 'boolean', default: true },
-  executeHeaderButtonsOnDrag: { kind: 'boolean', default: true },
-  playneedle_t: { kind: 'number', default: 0.092, min: 0, max: 1 },
-  playneedle_j: { kind: 'number', default: 0.049, min: 0, max: 1 },
-  playneedle_k: { kind: 'number', default: 103, min: 0, max: 1000 },
-  playneedle_s: { kind: 'number', default: 16.4, min: 0, max: 100 },
-  playneedle_v_o: { kind: 'number', default: 0.4, min: 0, max: 1 },
-  playneedle_h_b: { kind: 'number', default: 0.8, min: 0, max: 1 },
-  playneedle_h_r: { kind: 'number', default: 1, min: 0, max: 1 },
-  playneedleIconHorizontalStretch: { kind: 'number', default: 0.4, min: 0, max: 2 },
-  colorTransitionDuration: { kind: 'number', default: 0, min: 0, max: 1000 },
+  guiScale: { kind: 'number', default: DEFAULT_SETTINGS.guiScale, min: 50, max: 200 },
+  includeResizeInUndo: { kind: 'boolean', default: DEFAULT_SETTINGS.includeResizeInUndo },
+  zoomEpicenter: { kind: 'enum', default: DEFAULT_SETTINGS.zoomEpicenter, values: ['playneedle', 'middle', 'cursor'] },
+  scrollSmooth: { kind: 'number', default: DEFAULT_SETTINGS.scrollSmooth, min: 0, max: 100 },
+  scrollAmount: { kind: 'number', default: DEFAULT_SETTINGS.scrollAmount, min: 1, max: 400 },
+  scrollZoomAmount: { kind: 'number', default: DEFAULT_SETTINGS.scrollZoomAmount, min: 1, max: 100 },
+  scrollZoomSmoothness: { kind: 'number', default: DEFAULT_SETTINGS.scrollZoomSmoothness, min: 0, max: 100 },
+  viewerControlsType: { kind: 'enum', default: DEFAULT_SETTINGS.viewerControlsType, values: ['compact', 'centered'] },
+  timecodePanel: { kind: 'enum', default: DEFAULT_SETTINGS.timecodePanel, values: ['timeline', 'viewer', 'both', 'none'] },
+  torusScrollingDisabled: { kind: 'enum', default: DEFAULT_SETTINGS.torusScrollingDisabled, values: ['whole torus menu', 'annular sectors only', 'none'] },
+  elevatedPanelDarken: { kind: 'number', default: DEFAULT_SETTINGS.elevatedPanelDarken, min: 0, max: 100 },
+  elevatedPanelBlur: { kind: 'number', default: DEFAULT_SETTINGS.elevatedPanelBlur, min: 0, max: 100 },
+  draggableHeaderButtons: { kind: 'boolean', default: DEFAULT_SETTINGS.draggableHeaderButtons },
+  allowMultipleMenus: { kind: 'boolean', default: DEFAULT_SETTINGS.allowMultipleMenus },
+  allowEditsWhenMenuOpen: { kind: 'boolean', default: DEFAULT_SETTINGS.allowEditsWhenMenuOpen },
+  executeHeaderButtonsOnDrag: { kind: 'boolean', default: DEFAULT_SETTINGS.executeHeaderButtonsOnDrag },
+  playneedle_t: { kind: 'number', default: DEFAULT_SETTINGS.playneedle_t, min: 0, max: 1 },
+  playneedle_j: { kind: 'number', default: DEFAULT_SETTINGS.playneedle_j, min: 0, max: 1 },
+  playneedle_k: { kind: 'number', default: DEFAULT_SETTINGS.playneedle_k, min: 0, max: 1000 },
+  playneedle_s: { kind: 'number', default: DEFAULT_SETTINGS.playneedle_s, min: 0, max: 100 },
+  playneedle_v_o: { kind: 'number', default: DEFAULT_SETTINGS.playneedle_v_o, min: 0, max: 1 },
+  playneedle_h_b: { kind: 'number', default: DEFAULT_SETTINGS.playneedle_h_b, min: 0, max: 1 },
+  playneedle_h_r: { kind: 'number', default: DEFAULT_SETTINGS.playneedle_h_r, min: 0, max: 1 },
+  playneedleIconHorizontalStretch: { kind: 'number', default: DEFAULT_SETTINGS.playneedleIconHorizontalStretch, min: 0, max: 2 },
+  colorTransitionDuration: { kind: 'number', default: DEFAULT_SETTINGS.colorTransitionDuration, min: 0, max: 1000 },
 };
 
 function storageKey(key: keyof SettingsValues): string {

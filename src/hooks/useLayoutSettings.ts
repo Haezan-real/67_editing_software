@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
-
-const DEFAULT_PLAYHEAD_TOP = 15;
-const DEFAULT_LEFT_WIDTH = 20;
-const DEFAULT_TIMELINE_HEIGHT = 35;
+import { DEFAULT_LAYOUT, DEFAULT_SETTINGS } from '../state/settingsDefaults';
 
 function readNumber(key: string, fallback: number, min?: number, max?: number): number {
   try {
@@ -28,23 +25,23 @@ function readBoolean(key: string, fallback: boolean): boolean {
 
 export function useLayoutSettings() {
   const [playheadTop, setPlayheadTop] = useState(() => {
-    const stored = readNumber('juicecut.settings.playheadTopPercent', DEFAULT_PLAYHEAD_TOP, 0, 100);
-    if (stored !== DEFAULT_PLAYHEAD_TOP) return stored;
-    return readNumber('juicecut.settings.playheadTop', DEFAULT_PLAYHEAD_TOP, 0, 100);
+    const stored = readNumber('juicecut.settings.playheadTopPercent', DEFAULT_LAYOUT.playheadTop, 0, 100);
+    if (stored !== DEFAULT_LAYOUT.playheadTop) return stored;
+    return readNumber('juicecut.settings.playheadTop', DEFAULT_LAYOUT.playheadTop, 0, 100);
   });
   const [includeResizeInUndo, setIncludeResizeInUndo] = useState(() =>
-    readBoolean('juicecut.settings.includeResizeInUndo', true),
+    readBoolean('juicecut.settings.includeResizeInUndo', DEFAULT_SETTINGS.includeResizeInUndo),
   );
   const [leftWidthPct, setLeftWidthPct] = useState(() =>
-    readNumber('juicecut.layout.leftWidthPct', DEFAULT_LEFT_WIDTH, 5, 50),
+    readNumber('juicecut.layout.leftWidthPct', DEFAULT_LAYOUT.leftWidthPct, 5, 50),
   );
   const [leftCollapsed] = useState(() =>
-    readBoolean('juicecut.layout.leftCollapsed', false),
+    readBoolean('juicecut.layout.leftCollapsed', DEFAULT_LAYOUT.leftCollapsed),
   );
   const [timelineHeightPct, setTimelineHeightPct] = useState(() =>
-    readNumber('juicecut.layout.timelineHeightPct', DEFAULT_TIMELINE_HEIGHT, 15, 60),
+    readNumber('juicecut.layout.timelineHeightPct', DEFAULT_LAYOUT.timelineHeightPct, 15, 60),
   );
-  const [, setGuiScale] = useState(() => readNumber('juicecut.settings.guiScale', 100, 50, 200));
+  const [, setGuiScale] = useState(() => readNumber('juicecut.settings.guiScale', DEFAULT_SETTINGS.guiScale, 50, 200));
 
   useEffect(() => {
     try { window.localStorage.setItem('juicecut.layout.leftCollapsed', String(leftCollapsed)); } catch {}
