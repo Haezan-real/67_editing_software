@@ -6,6 +6,8 @@ import { formatShortcutLabel, isShortcutMatch } from './shortcuts';
 import { formatSensitivity, adjustSensitivity, DEFAULT_SENSITIVITY, DISPLAY_DURATION_MS } from '../utils/sensitivity';
 import { evaluateGraph, evaluateSegment } from '../domain/graphEvaluator';
 
+//src/components/graph.tsx
+
 export interface SizeGraphPoint {
   time: number;
   size: number;

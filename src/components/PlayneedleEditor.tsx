@@ -9,6 +9,8 @@ import { dispatchSettingsChanged } from '../state/settingsEvents';
 import { DEFAULT_PLAYNEEDLE_WIDTH, MAX_PLAYNEEDLE_WIDTH, MIN_PLAYNEEDLE_WIDTH, PLAYNEEDLE_WIDTH_STORAGE_KEY } from '../domain/playneedleSettings';
 import { DEFAULT_SETTINGS } from '../state/settingsDefaults';
 
+//src/components/PlayneedleEditor.tsx
+
 // Playneedle Editor modal caps
 const EDITOR_MAX_WIDTH = '480px';
 const EDITOR_MAX_HEIGHT = '72vh'; //default 72vh

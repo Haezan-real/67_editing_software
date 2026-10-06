@@ -1,3 +1,4 @@
+//src/domain/playneedleSettings.ts
 export {
 	DEFAULT_PLAYNEEDLE_WIDTH,
 	MIN_PLAYNEEDLE_WIDTH,

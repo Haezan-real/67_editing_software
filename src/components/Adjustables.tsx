@@ -1,6 +1,6 @@
 import React from 'react';
 import { RotateCcw, Plus } from 'lucide-react';
-
+//src/components/Adjustables.tsx
 // ─── Slider ───────────────────────────────────────────────────────────────────
 
 interface SliderProps {

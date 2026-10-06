@@ -1,4 +1,4 @@
-// GlobalStyleSettings.tsx
+//src/components/GlobalStyleSettings.tsx
 // Single source of truth for universal color settings used by every theme.
 // Any theme (or component) that wants to define or read a color value should
 // import from this file so that the key set and ordering stay consistent.

@@ -1,5 +1,5 @@
 /**
- * default_shader/index.ts
+ * //src/shaders/default_shader/index.ts
  * 
  * Shader module for the default GLSL shader.
  * Handles compilation, program creation, geometry setup, texture management,

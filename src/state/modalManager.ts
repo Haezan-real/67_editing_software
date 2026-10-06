@@ -1,6 +1,8 @@
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from './settingsEvents';
 import { DEFAULT_SETTINGS } from './settingsDefaults';
 
+//src/state/modalManager.ts
+
 export type ModalType = 'settings' | 'styles' | 'export' | 'torusMenuEditor' | 'playneedleEditor' | 'colorPicker' | 'rollDialog' | 'shaderSelector';
 
 export interface ModalPermission {

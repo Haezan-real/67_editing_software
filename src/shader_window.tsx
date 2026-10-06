@@ -1,5 +1,5 @@
 /**
- * shader_window.tsx
+ * src/shader_window.tsx
  * 
  * This is loaded by overlay.html in Window B (the transparent overlay).
  * It sets up a WebGL2 canvas that receives raw pixel data from the app window

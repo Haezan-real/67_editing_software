@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
 import { DEFAULT_LAYOUT, DEFAULT_SETTINGS } from '../state/settingsDefaults';
 
+//src/hooks/useLayoutSettings.ts
+
 function readNumber(key: string, fallback: number, min?: number, max?: number): number {
   try {
     const value = Number(window.localStorage.getItem(key));

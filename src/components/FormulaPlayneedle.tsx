@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 
+//src/components/FormulaPlayneedle.tsx
+
 interface PlayneedleParams {
   t: number;   // thickness of needle (0 to 0.5)
   j: number;   // length of ribbon at top (-0.05 to 0.25)

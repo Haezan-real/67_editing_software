@@ -1,4 +1,5 @@
 #version 300 es
+//src/shaders/default_shader/main.vert
 in vec2 a_position;
 in vec2 a_texCoord;
 out vec2 v_texCoord;

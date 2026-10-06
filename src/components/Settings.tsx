@@ -11,6 +11,8 @@ import { modalManager } from '../state/modalManager';
 import { showToast } from './Toast';
 import { useSettings } from '../state/settingsStore';
 
+//src/components/Settings.tsx
+
 // Stretch factors for the playneedle icon
 const PLAYNEEDLE_ICON_HORIZONTAL_STRETCH_FACTOR = 0.4; // default 0.4
 const PLAYNEEDLE_ICON_VERTICAL_STRETCH_FACTOR = 3; // default 3

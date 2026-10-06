@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+//src/vite-env.d.ts
+
 import './electronApi';
 
 declare module '*.vert?raw' {

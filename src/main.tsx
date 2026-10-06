@@ -4,6 +4,8 @@ import App from './App.tsx';
 import './index.css';
 import { DEFAULT_SETTINGS } from './state/settingsDefaults';
 
+//src/main.tsx
+
 if (window.electronAPI?.isCustomCursorEnabled()) {
   document.documentElement.style.cursor = 'none';
 }

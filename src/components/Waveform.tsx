@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+//src/components/Waveform.tsx
+
 type Props = {
   src: string;
   width: number;

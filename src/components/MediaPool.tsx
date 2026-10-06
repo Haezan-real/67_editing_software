@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import { Film, Music, Image as ImageIcon, Trash2, List, Layout } from 'lucide-react';
 import type { MediaItem } from '../types';
 
+//src/components/MediaPool.tsx
+
 interface Props {
   items: MediaItem[];
   selectedMediaId: string | null;

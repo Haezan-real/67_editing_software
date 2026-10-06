@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { MediaItem, TimelineClip } from '../types';
 import { FPS } from '../types';
 
+//src/hooks/useMediaPlayback.ts
+
 function drawMedia(ctx: CanvasRenderingContext2D, source: CanvasImageSource, width: number, height: number, alpha: number) {
   const measurable = source as CanvasImageSource & { videoWidth?: number; videoHeight?: number; naturalWidth?: number; naturalHeight?: number; width?: number; height?: number };
   const sourceWidth = measurable.videoWidth ?? measurable.naturalWidth ?? measurable.width ?? 0;

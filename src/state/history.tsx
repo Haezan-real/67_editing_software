@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useRef, useState, ReactNode } from 'react';
 import { DEFAULT_SETTINGS } from './settingsDefaults';
 
+//src/state/history.tsx
+
 export type AppSnapshot = Record<string, unknown>; // opaque snapshot type (App decides structure)
 
 function snapshotMeta(snapshot: AppSnapshot): { type?: string } | undefined {

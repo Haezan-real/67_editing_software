@@ -1,5 +1,7 @@
 import type { MediaType } from '../types';
 
+//src/domain/mediaIngestion.ts
+
 const VIDEO_EXTENSIONS = new Set(['mp4', 'mkv', 'mov', 'webm']);
 const AUDIO_EXTENSIONS = new Set(['mp3', 'ogg', 'wav', 'aac']);
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'avif', 'gif', 'webp']);

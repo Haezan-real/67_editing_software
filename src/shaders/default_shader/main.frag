@@ -7,6 +7,8 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_strength;
 
+//src/shaders/default_shader/main.frag
+
 // 17 theme colors, 3 components (RGB) each = 51 floats
 // Order matches GlobalStyleSettings.tsx colorFields array:
 // 0: --bg-panel, 1: --bg-base, 2: --bg-viewer, 3: --video-bg, 4: --bg-elevated,

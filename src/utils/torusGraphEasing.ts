@@ -1,4 +1,4 @@
-//torusGraphEasing.ts
+//src/utils/torusGraphEasing.ts
 import type { SizeGraphPoint } from '../components/graph';
 import { evaluateGraph } from '../domain/graphEvaluator';
 

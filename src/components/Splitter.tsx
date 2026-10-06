@@ -1,5 +1,7 @@
 ﻿import React, { useRef, useEffect } from 'react';
 
+//src/components/Splitter.tsx
+
 interface Props {
   orientation: 'vertical' | 'horizontal';
   onChange: (delta: number) => void;

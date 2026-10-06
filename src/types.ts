@@ -1,5 +1,7 @@
 export type MediaType = 'video' | 'audio' | 'image';
 
+//src/types.ts
+
 export interface MediaItem {
   id: string;
   name: string;

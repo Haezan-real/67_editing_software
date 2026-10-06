@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { MediaItem, TimelineClip } from '../types';
 import { FPS } from '../types';
-
+//src/hooks/useExportJob.ts
 function waitForVideoFrame(video: HTMLVideoElement, signal: AbortSignal): Promise<void> {
   if (signal.aborted) return Promise.reject(new DOMException('Export cancelled', 'AbortError'));
 

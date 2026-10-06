@@ -3,6 +3,8 @@ export interface CursorPosition {
   y: number;
 }
 
+//src/electronApi.ts
+
 export interface ElectronAPI {
   minimizeWindow: () => void;
   toggleMaximizeWindow: () => void;

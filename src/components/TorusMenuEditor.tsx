@@ -1,4 +1,4 @@
-//TorusMenuEditor.tsx
+//src/components/TorusMenuEditor.tsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import GraphEditor, { getSavedSizeGraph, SizeGraphPoint, GraphConfig, DEFAULT_GRAPH_CONFIG } from './graph';

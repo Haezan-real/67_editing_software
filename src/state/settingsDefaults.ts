@@ -3,6 +3,8 @@ export type ViewerControlsType = 'compact' | 'centered';
 export type TimecodePanel = 'timeline' | 'viewer' | 'both' | 'none';
 export type TorusScrollingDisabled = 'whole torus menu' | 'annular sectors only' | 'none';
 
+//src/state/settingsDefaults.ts
+
 export interface SettingsValues {
   guiScale: number;
   includeResizeInUndo: boolean;

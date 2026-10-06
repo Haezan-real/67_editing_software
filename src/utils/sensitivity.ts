@@ -1,4 +1,5 @@
 /**
+ * //src/utils/sensitivity.ts
  * Drag sensitivity utility for controlling mouse drag speed
  * Sensitivity is measured in pixels per pixel (ppp)
  */

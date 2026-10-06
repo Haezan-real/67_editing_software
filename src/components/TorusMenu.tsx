@@ -2,6 +2,8 @@
 // Prevents entrance animation from replaying when component remounts.
 let torusMenuHasAnimated = false;
 
+//src/components/TorusMenu.tsx
+
 import { useEffect, useState, useRef } from 'react';
 import { Scissors, ChevronLeft, ChevronRight, Move } from 'lucide-react';
 import { getSavedSizeGraph, SizeGraphPoint } from './graph';

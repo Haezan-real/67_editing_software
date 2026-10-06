@@ -1,6 +1,8 @@
 import type { TimelineClip } from '../types';
 import { generateId } from '../types';
 
+//src/domain/timelineEdits.ts
+
 export type TimelineEditErrorCode =
   | 'clip-not-found'
   | 'invalid-frame'

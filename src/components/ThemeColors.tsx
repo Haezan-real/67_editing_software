@@ -1,5 +1,7 @@
 import { type ThemeColors } from './GlobalStyleSettings';
 
+//src/components/ThemeColors.tsx
+
 export const ogDarkColors: ThemeColors = {
   '--bg-panel': '#13141a', '--bg-base': '#0c0d10', '--bg-viewer': '#060608',
   '--bg-elevated': '#1a1c24', '--bg-hover': '#21242f', '--border': '#262830',

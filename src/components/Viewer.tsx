@@ -1,6 +1,9 @@
 import { useMediaPlayback } from '../hooks/useMediaPlayback';
 import type { MediaItem, TimelineClip } from '../types';
 
+
+//src/components/Viewer.tsx
+
 interface Props {
   clips: TimelineClip[];
   mediaItems: Map<string, MediaItem>;

@@ -1,6 +1,8 @@
 ﻿import { SETTINGS_CHANGED_EVENT, dispatchSettingsChanged, getSettingsChangedDetail } from '../state/settingsEvents';
 import { useEffect } from 'react';
 
+//src/components/shortcuts.ts
+
 /**
  * Centralized keyboard shortcut management.
  */

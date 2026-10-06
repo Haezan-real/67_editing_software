@@ -4,6 +4,8 @@ import type { MediaItem, TimelineClip, Track } from '../types';
 import { generateId } from '../types';
 import { addClip, changeFade, changeSourceRange, joinClips, nudgeClips, splitClip, stepEdge, trimFormer, trimLatter, type TimelineEditResult } from '../domain/timelineEdits';
 
+//src/hooks/useTimelineEditor.ts
+
 type HistoryApi = { push: (snapshot: AppSnapshot) => void };
 
 interface TimelineEditorOptions {

@@ -5,6 +5,9 @@ import { formatTimecode } from '../types';
 import { SETTINGS_CHANGED_EVENT } from '../state/settingsEvents';
 import { DEFAULT_SETTINGS } from '../state/settingsDefaults';
 
+//src/components/ViewerControls.tsx
+
+
 interface Props {
   clips: TimelineClip[];
   mediaItems: Map<string, MediaItem>;

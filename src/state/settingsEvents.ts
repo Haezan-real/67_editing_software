@@ -1,5 +1,7 @@
 export const SETTINGS_CHANGED_EVENT = 'juicecut.settings-changed';
 
+//src/state/settingsEvents.ts
+
 export interface SettingsChangedDetail {
   key: string;
   value: unknown;

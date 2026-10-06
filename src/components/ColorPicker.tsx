@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { RotateCcw } from 'lucide-react';
 import Splitter from './Splitter';
+//src/components/ColorPicker.tsx
 
 // Additional imports for portal functionality
 interface Props {

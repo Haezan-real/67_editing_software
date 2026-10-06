@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+//src/components/ThumbnailRoll.tsx
+
 type Props = {
   src: string;
   totalWidth: number; // available width in px

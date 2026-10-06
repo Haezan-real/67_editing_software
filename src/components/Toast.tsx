@@ -1,6 +1,8 @@
 // Simple DOM-based toast notification class
 // Can be used anywhere in the program with: new Toast(message)
 
+//src/components/Toast.tsx
+
 class Toast {
   private static activeToast: HTMLDivElement | null = null;
   private static activeTimer: ReturnType<typeof setTimeout> | null = null;

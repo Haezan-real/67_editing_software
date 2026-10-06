@@ -1,6 +1,8 @@
 #version 300 es
 precision highp float;
 
+//src/shaders/default_shader/cursor.frag
+
 /**
  * cursor.frag
  * 

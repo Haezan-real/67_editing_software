@@ -1,4 +1,4 @@
-//styles.tsx
+//src/components/styles.tsx
 import { useState, useEffect, useRef } from 'react';
 import { modalManager } from '../state/modalManager';
 // Modal dimensions for the Styles page

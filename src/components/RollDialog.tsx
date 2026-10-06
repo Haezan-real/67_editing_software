@@ -3,6 +3,8 @@ import type { TimelineClip, MediaItem } from '../types';
 import { FPS, formatTimecode } from '../types';
 import DraggableModal from './DraggableModal';
 
+//src/components/RollDialog.tsx
+
 interface Props {
   clip: TimelineClip;
   media: MediaItem;

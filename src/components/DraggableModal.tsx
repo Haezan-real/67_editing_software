@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
 import { SETTINGS_CHANGED_EVENT, getSettingsChangedDetail } from '../state/settingsEvents';
 import { DEFAULT_SETTINGS } from '../state/settingsDefaults';
+//src/components/DraggableModal.tsx
+
 
 interface DraggableModalProps {
   /** The title text shown in the header */

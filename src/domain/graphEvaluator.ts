@@ -2,6 +2,7 @@ export interface GraphPoint {
   time: number;
   size: number;
 }
+//src/domain/graphEvaluator.ts
 
 const EASING_STRENGTH = 3;
 

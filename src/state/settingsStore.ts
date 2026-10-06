@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { dispatchSettingsChanged } from './settingsEvents';
 import { DEFAULT_SETTINGS, type SettingsValues, type TimecodePanel, type TorusScrollingDisabled, type ViewerControlsType, type ZoomEpicenter } from './settingsDefaults';
 
+//src/state/settingsStore.ts
+
 type NumericSetting = { kind: 'number'; default: number; min: number; max: number };
 type BooleanSetting = { kind: 'boolean'; default: boolean };
 type EnumSetting<T extends string> = { kind: 'enum'; default: T; values: readonly T[] };

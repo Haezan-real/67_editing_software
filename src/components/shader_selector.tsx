@@ -1,8 +1,10 @@
-//shader_selector.tsx
+//src/components/shader_selector.tsx
 import { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { modalManager } from '../state/modalManager';
 import DraggableModal from './DraggableModal';
+
+
 
 // Shader icon - star/reflective glass vibes
 const shaderIcon: string = 'M12 2L9.19 8.63 2 9.24l5.46 4.73L6.82 21 12 17.27 17.18 21l-.64-7.26L22 9.24l-7.19-.61z';

@@ -1,4 +1,4 @@
-//app.tsx
+//src/App.tsx
 import { useState, useCallback, useEffect, useRef } from 'react';
 import MediaPool from './components/MediaPool';
 
@@ -521,42 +521,61 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    const DRAG_MOVE_INTERVAL_MS = 1000 / 20; // cap window-drag IPC to 20/sec
+    let lastSentAt = 0;
+    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const sendDragMove = (position: { x: number; y: number }) => {
+      lastSentAt = Date.now();
+      window.electronAPI?.moveWindowDrag(position);
+    };
+
     const moveWindowDrag = (event: PointerEvent) => {
-      if (windowDragActiveRef.current) {
-        window.electronAPI?.moveWindowDrag({ x: event.screenX, y: event.screenY });
+      if (!windowDragActiveRef.current) return;
+      const position = { x: event.screenX, y: event.screenY };
+      const elapsed = Date.now() - lastSentAt;
+      if (elapsed >= DRAG_MOVE_INTERVAL_MS) {
+        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+        sendDragMove(position);
+      } else if (!pendingTimer) {
+        pendingTimer = setTimeout(() => {
+          pendingTimer = null;
+          sendDragMove(position);
+        }, DRAG_MOVE_INTERVAL_MS - elapsed);
       }
     };
+    const cancelPendingDragMove = () => {
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+    };
+    const handleEndWindowDrag = () => {
+      cancelPendingDragMove();
+      endWindowDrag();
+    };
+
     window.addEventListener('pointermove', moveWindowDrag);
-    window.addEventListener('pointerup', endWindowDrag);
-    window.addEventListener('pointercancel', endWindowDrag);
-    window.addEventListener('blur', endWindowDrag);
+    window.addEventListener('pointerup', handleEndWindowDrag);
+    window.addEventListener('pointercancel', handleEndWindowDrag);
+    window.addEventListener('blur', handleEndWindowDrag);
     return () => {
       window.removeEventListener('pointermove', moveWindowDrag);
-      window.removeEventListener('pointerup', endWindowDrag);
-      window.removeEventListener('pointercancel', endWindowDrag);
-      window.removeEventListener('blur', endWindowDrag);
+      window.removeEventListener('pointerup', handleEndWindowDrag);
+      window.removeEventListener('pointercancel', handleEndWindowDrag);
+      window.removeEventListener('blur', handleEndWindowDrag);
+      cancelPendingDragMove();
       endWindowDrag();
     };
   }, [endWindowDrag]);
 
   // Track mouse position for custom cursor overlay (sent to main process → forwarded to shader_window)
-  // Listen to BOTH mousemove and pointermove — pointermove is needed because
-  // the Splitter component uses pointer events for dragging, and during a
-  // pointer drag the browser can suppress mousemove events.
   useEffect(() => {
     const api = window.electronAPI;
     if (!api) return;
     const mouseHandler = (e: MouseEvent) => {
       api.sendCursorPosition({ x: e.clientX, y: e.clientY });
     };
-    const pointerHandler = (e: PointerEvent) => {
-      api.sendCursorPosition({ x: e.clientX, y: e.clientY });
-    };
     document.addEventListener('mousemove', mouseHandler);
-    document.addEventListener('pointermove', pointerHandler);
     return () => {
       document.removeEventListener('mousemove', mouseHandler);
-      document.removeEventListener('pointermove', pointerHandler);
     };
   }, []);
 
