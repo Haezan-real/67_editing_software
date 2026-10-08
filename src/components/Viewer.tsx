@@ -1,4 +1,5 @@
 import { useMediaPlayback } from '../hooks/useMediaPlayback';
+import ShaderBackground from './ShaderBackground';
 import type { MediaItem, TimelineClip } from '../types';
 
 
@@ -33,6 +34,7 @@ export default function Viewer({
         </button>
       </div>
       <div className="viewer-canvas-wrap">
+        <ShaderBackground />
         <canvas ref={canvasRef} width={854} height={480} className="viewer-canvas" />
       </div>
     </div>

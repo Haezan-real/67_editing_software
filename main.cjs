@@ -162,12 +162,15 @@ class WindowManager {
       webPreferences: WEB_PREFERENCES,
     });
 
-    // shaderWindow is repositioned every drag tick via setPosition(), which
-    // triggers the same spurious native resize quirk as appWindow — correct
-    // it back to the known-good size so its <canvas> never sees a false resize.
+    // shaderWindow is repositioned via setBounds() during drag sync, which
+    // passes the correct size — so any size change observed mid-drag is
+    // spurious. Correcting it with setSize() would fire yet another resize
+    // event and feed the storm; the real bounds are reapplied on drag-end
+    // via flushWindowSync(), so just count and skip while dragging.
     this.shaderWindow.on('resize', () => {
       if (DIAG) this.diag.shaderResizeEvents++;
-      if (!this.isDragging || !this.dragStartWidth || !this.dragStartHeight) return;
+      if (this.isDragging) return;
+      if (!this.dragStartWidth || !this.dragStartHeight) return;
       if (!this.shaderWindow || this.shaderWindow.isDestroyed()) return;
       const bounds = this.shaderWindow.getBounds();
       if (bounds.width !== this.dragStartWidth || bounds.height !== this.dragStartHeight) {

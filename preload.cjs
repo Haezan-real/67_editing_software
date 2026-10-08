@@ -68,11 +68,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.send('change-shader', shaderName);
     }
   },
-  sendCursorPosition: (position) => {
-    if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) {
-      ipcRenderer.send('cursor-move', { x: position.x, y: position.y });
-    }
-  },
+  sendCursorPosition: (() => {
+    // High-poll mice fire mousemove at 500+/s; cap cursor-move IPC at 60/s
+    // (latest-position trailing) — plenty for a cursor overlay, and keeps the
+    // main process + shader renderer from being flooded during fast movement.
+    const CURSOR_INTERVAL_MS = 1000 / 60;
+    let lastSentAt = 0;
+    let pendingTimer = null;
+    let pendingPos = null;
+    return (position) => {
+      if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.y)) return;
+      const elapsed = Date.now() - lastSentAt;
+      if (elapsed >= CURSOR_INTERVAL_MS) {
+        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; pendingPos = null; }
+        lastSentAt = Date.now();
+        ipcRenderer.send('cursor-move', { x: position.x, y: position.y });
+      } else {
+        pendingPos = position;
+        if (!pendingTimer) {
+          pendingTimer = setTimeout(() => {
+            pendingTimer = null;
+            if (pendingPos) {
+              lastSentAt = Date.now();
+              ipcRenderer.send('cursor-move', { x: pendingPos.x, y: pendingPos.y });
+              pendingPos = null;
+            }
+          }, CURSOR_INTERVAL_MS - elapsed);
+        }
+      }
+    };
+  })(),
   sendShaderFps: (fps) => {
     if (Number.isFinite(fps)) ipcRenderer.send('shader-fps', fps);
   },
