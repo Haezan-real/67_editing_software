@@ -1,0 +1,40 @@
+{
+  "name": "haezan's shader",
+  "author": "haezan",
+  "version": "1.0",
+  "engine": 1,
+  "description": "One shader, many looks. u_look selects the visual mode; per-look params below.",
+  "looks": [
+    {
+      "id": 0,
+      "name": "Passthrough",
+      "description": "Unmodified capture — shader effectively off"
+    },
+    {
+      "id": 1,
+      "name": "Plasma",
+      "description": "Animated plasma distortion with color cycling",
+      "params": {
+        "intensity": { "type": "float", "min": 0.0, "max": 1.0, "default": 0.4 },
+        "speed": { "type": "float", "min": 0.1, "max": 3.0, "default": 0.5 }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Vignette + Grain",
+      "description": "Cinematic vignette with subtle animated film grain",
+      "params": {
+        "vignetteStrength": { "type": "float", "min": 0.0, "max": 1.0, "default": 0.5 },
+        "grainStrength": { "type": "float", "min": 0.0, "max": 0.3, "default": 0.08 }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Hue Drift",
+      "description": "Slow animated hue rotation (don't use while color grading)",
+      "params": {
+        "driftSpeed": { "type": "float", "min": 0.0, "max": 1.0, "default": 0.1 }
+      }
+    }
+  ]
+}

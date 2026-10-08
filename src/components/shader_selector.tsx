@@ -42,9 +42,9 @@ async function getAvailableShaders(): Promise<string[]> {
     
     // Fallback: return known shaders
     console.log('[ShaderSelector] Using fallback shader list');
-    return ['default_shader', 'glitch'];
+    return ['haezans_shader'];
   } catch {
-    return ['default_shader'];
+    return ['haezans_shader'];
   }
 }
 
@@ -79,9 +79,14 @@ export function OpenShaderSelector(onCloseCallback?: () => void) {
 export default function ShaderSelectorModal({ onClose }: { onClose: () => void }) {
   const [activeShader, setActiveShader] = useState<string>(() => {
     try {
-      return window.localStorage.getItem('juicecut.shaders.active') || 'default_shader';
+      const stored = window.localStorage.getItem('juicecut.shaders.active');
+      // Old default no longer exists; migrate to the single remaining shader
+      if (!stored || stored === 'default_shader' || stored === 'glitch' || stored === 'plasma') {
+        return 'haezans_shader';
+      }
+      return stored;
     } catch {
-      return 'default_shader';
+      return 'haezans_shader';
     }
   });
   const [shaders, setShaders] = useState<string[]>([]);

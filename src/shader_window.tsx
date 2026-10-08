@@ -55,8 +55,8 @@ async function loadShaderRenderer(shaderName: string) {
     const module = await import(`./shaders/${shaderName}/index.ts`);
     return module.createShaderRenderer;
   } catch (e) {
-    console.error(`[ShaderWindow] Failed to load shader "${shaderName}", falling back to default_shader`, e);
-    const module = await import(`./shaders/default_shader/index.ts`);
+    console.error(`[ShaderWindow] Failed to load shader "${shaderName}", falling back to haezans_shader`, e);
+    const module = await import(`./shaders/haezans_shader/index.ts`);
     return module.createShaderRenderer;
   }
 }
@@ -160,7 +160,7 @@ async function main() {
     console.log('Overlay: WebGL2 context created successfully');
 
     // ─── Create the shader renderer ─────────────────────────────────────────
-    let currentShaderName = 'default_shader'; // Can be updated via localStorage later
+    let currentShaderName = 'haezans_shader'; // Can be updated via localStorage later
     let rendererRequestId = 0;
 
     async function initializeRenderer(shaderName: string) {
