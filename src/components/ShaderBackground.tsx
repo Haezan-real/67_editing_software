@@ -1,33 +1,48 @@
 import { useEffect, useRef } from 'react';
 
-const VERT = `#version 300 es
-layout(location = 0) in vec2 a_pos;
-void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
-`;
+const DEFAULT_SHADER = 'haezans_shader';
+const ACTIVE_SHADER_KEY = 'juicecut.shaders.active';
 
-// Animated plasma background — procedural, no input texture.
-const FRAG = `#version 300 es
-precision highp float;
-uniform vec2 u_res;
-uniform float u_time;
-out vec4 outColor;
-
-void main() {
-  vec2 uv = gl_FragCoord.xy / u_res;
-  vec2 p = uv * 6.0;
-  float t = u_time * 0.6;
-  float v = sin(p.x + t)
-          + sin((p.y + t) * 0.7)
-          + sin((p.x + p.y + t) * 0.5)
-          + sin(length(p - vec2(sin(t * 0.3), cos(t * 0.4)) * 2.5) * 1.2 - t);
-  v *= 0.25;
-  vec3 col = 0.5 + 0.5 * cos(vec3(v * 3.14159) + vec3(0.0, 2.1, 4.2));
-  // Keep it dark so overlaying UI text stays readable
-  outColor = vec4(col * 0.25, 1.0);
+function getSelectedShader(): string {
+  try {
+    return window.localStorage.getItem(ACTIVE_SHADER_KEY) || DEFAULT_SHADER;
+  } catch {
+    return DEFAULT_SHADER;
+  }
 }
-`;
 
-/** Procedural GLSL background rendered behind the viewer canvas (proof-of-concept). */
+interface ShaderSources {
+  vert: string;
+  frag: string;
+}
+
+async function loadShaderSources(shaderName: string): Promise<ShaderSources | null> {
+  try {
+    const mod = await import(`../shaders/${shaderName}/index.ts`);
+    return {
+      vert: mod.viewerBackgroundVert as string,
+      frag: mod.viewerBackgroundFrag as string,
+    };
+  } catch (e) {
+    console.error(`ShaderBackground: failed to load shader "${shaderName}"`, e);
+    return null;
+  }
+}
+
+function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader | null {
+  const s = gl.createShader(type);
+  if (!s) return null;
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.error('ShaderBackground compile error:', gl.getShaderInfoLog(s));
+    gl.deleteShader(s);
+    return null;
+  }
+  return s;
+}
+
+/** Full-screen procedural shader behind the viewer canvas, loaded from the selected shader pack. */
 export default function ShaderBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -39,85 +54,103 @@ export default function ShaderBackground() {
       console.error('ShaderBackground: WebGL2 context unavailable');
       return;
     }
-    console.log('ShaderBackground: WebGL2 context created');
 
-    const compile = (type: number, src: string) => {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-        console.error('ShaderBackground compile error:', gl.getShaderInfoLog(s));
-        return null;
-      }
-      return s;
-    };
-
-    const vs = compile(gl.VERTEX_SHADER, VERT);
-    const fs = compile(gl.FRAGMENT_SHADER, FRAG);
-    if (!vs || !fs) return;
-
-    const prog = gl.createProgram()!;
-    gl.attachShader(prog, vs);
-    gl.attachShader(prog, fs);
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      console.error('ShaderBackground link error:', gl.getProgramInfoLog(prog));
-      return;
-    }
-    gl.useProgram(prog);
-
-    // Full-screen triangle
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-
-    const uRes = gl.getUniformLocation(prog, 'u_res');
-    const uTime = gl.getUniformLocation(prog, 'u_time');
-
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      const w = Math.floor(rect.width * dpr);
-      const h = Math.floor(rect.height * dpr);
-      if (w === 0 || h === 0) return false; // not laid out yet
-      if (canvas.width === w && canvas.height === h) return true;
-      canvas.width = w;
-      canvas.height = h;
-      gl.viewport(0, 0, w, h);
-      return true;
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
-
+    let disposed = false;
     let rafId = 0;
-    let loggedFirstFrame = false;
-    const start = performance.now();
-    const loop = () => {
-      // Keep trying until layout gives us a real size (mount before layout)
-      if (canvas.width === 0 || canvas.height === 0) resize();
-      if (canvas.width > 0 && canvas.height > 0) {
-        if (!loggedFirstFrame) {
-          loggedFirstFrame = true;
-          console.log('ShaderBackground: first frame rendered at', canvas.width, 'x', canvas.height);
-        }
-        gl.uniform2f(uRes, canvas.width, canvas.height);
-        gl.uniform1f(uTime, (performance.now() - start) / 1000);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
+    let ro: ResizeObserver | null = null;
+    let cleanupGL: (() => void) | null = null;
+
+    const setup = async (shaderName: string) => {
+      const sources = await loadShaderSources(shaderName);
+      if (!sources || disposed) return;
+
+      const vs = compile(gl, gl.VERTEX_SHADER, sources.vert);
+      const fs = compile(gl, gl.FRAGMENT_SHADER, sources.frag);
+      if (!vs || !fs) return;
+
+      const prog = gl.createProgram()!;
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        console.error('ShaderBackground link error:', gl.getProgramInfoLog(prog));
+        return;
       }
+      gl.useProgram(prog);
+
+      // Full-screen triangle
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+      const uRes = gl.getUniformLocation(prog, 'u_res');
+      const uResolution = gl.getUniformLocation(prog, 'u_resolution');
+      const uTime = gl.getUniformLocation(prog, 'u_time');
+
+      const resize = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.floor(rect.width * dpr);
+        const h = Math.floor(rect.height * dpr);
+        if (w === 0 || h === 0) return false;
+        if (canvas.width === w && canvas.height === h) return true;
+        canvas.width = w;
+        canvas.height = h;
+        gl.viewport(0, 0, w, h);
+        return true;
+      };
+      resize();
+      ro = new ResizeObserver(resize);
+      ro.observe(canvas);
+
+      let loggedFirstFrame = false;
+      const start = performance.now();
+      const loop = () => {
+        if (canvas.width === 0 || canvas.height === 0) resize();
+        if (canvas.width > 0 && canvas.height > 0) {
+          if (!loggedFirstFrame) {
+            loggedFirstFrame = true;
+            console.log(`ShaderBackground: "${shaderName}" first frame at`, canvas.width, 'x', canvas.height);
+          }
+          if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+          if (uResolution) gl.uniform2f(uResolution, canvas.width, canvas.height);
+          gl.uniform1f(uTime, (performance.now() - start) / 1000);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        }
+        rafId = requestAnimationFrame(loop);
+      };
       rafId = requestAnimationFrame(loop);
+
+      cleanupGL = () => {
+        gl.deleteProgram(prog);
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+        gl.deleteBuffer(buf);
+      };
     };
-    rafId = requestAnimationFrame(loop);
+
+    setup(getSelectedShader());
+
+    // Live-switch when the shader selector dispatches a change
+    const onShaderChange = (e: Event) => {
+      const shaderName = (e as CustomEvent<{ shaderName?: string }>).detail?.shaderName;
+      if (!shaderName) return;
+      cancelAnimationFrame(rafId);
+      ro?.disconnect();
+      cleanupGL?.();
+      cleanupGL = null;
+      setup(shaderName);
+    };
+    window.addEventListener('juicecut-shader-change', onShaderChange);
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(rafId);
-      ro.disconnect();
-      gl.deleteProgram(prog);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-      gl.deleteBuffer(buf);
+      ro?.disconnect();
+      cleanupGL?.();
+      window.removeEventListener('juicecut-shader-change', onShaderChange);
     };
   }, []);
 
