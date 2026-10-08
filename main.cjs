@@ -13,6 +13,8 @@ const WIN_PRELOAD = path.join(__dirname, 'preload.cjs');
 const WIN_ICON = path.join(__dirname, 'src/67_editing_software.ico');
 const MAXIMIZE_DELAY_MS = 1;
 const IS_DEVELOPMENT = process.env.ELECTRON_DEV === 'true';
+// Temporarily default-on for diagnosis; set DRAG_DIAG=false to silence.
+const DIAG = process.env.DRAG_DIAG !== 'false';
 const DEV_SERVER_URL = 'http://localhost:5173';
 const APP_ENTRY = path.join(__dirname, 'dist/index.html');
 const SHADER_ENTRY = path.join(__dirname, 'dist/shader_window.html');
@@ -53,6 +55,34 @@ class WindowManager {
     this.dragStartHeight = null;
     this.ready = false;
     this.latestShaderColors = null;
+
+    // Drag diagnostics: per-second counters + a live timer while dragging
+    this.diag = {
+      dragMoveIpc: 0,   // window-drag-move IPCs received
+      setPosition: 0,   // native setPosition calls on appWindow
+      setPosMs: 0,      // total ms spent inside setPosition (blocking time)
+      setPosMaxMs: 0,   // worst single setPosition latency
+      appMoveEvents: 0, // native 'move' events on appWindow
+      appResizeEvents: 0,      // native 'resize' events on appWindow
+      appResizeCorrects: 0,    // spurious-resize setSize() corrections
+      shaderResizeEvents: 0,   // native 'resize' events on shaderWindow
+      shaderResizeCorrects: 0, // spurious-resize setSize() corrections on shaderWindow
+      shaderSyncPos: 0, // setPosition calls on shaderWindow from sync
+      cursorIpc: 0,     // cursor-move IPCs received
+    };
+    this.diagTimer = null;
+  }
+
+  diagLogTick() {
+    const d = this.diag;
+    console.log(
+      `[DRAG-DIAG] dragIpc=${d.dragMoveIpc}/s setPos=${d.setPosition}/s ` +
+      `setPosTime=${d.setPosMs.toFixed(1)}ms/s max=${d.setPosMaxMs.toFixed(1)}ms ` +
+      `moveEvt=${d.appMoveEvents}/s appResize=${d.appResizeEvents}/s(corrected ${d.appResizeCorrects}) ` +
+      `shaderResize=${d.shaderResizeEvents}/s(corrected ${d.shaderResizeCorrects}) ` +
+      `shaderSyncPos=${d.shaderSyncPos}/s cursorIpc=${d.cursorIpc}/s`
+    );
+    for (const k of Object.keys(d)) d[k] = 0;
   }
 
   loadWindow(window, developmentPath, productionPath) {
@@ -87,10 +117,12 @@ class WindowManager {
     // height purely from repeated setPosition() calls during a drag; correct
     // it back immediately so the window never visibly grows while dragging.
     this.appWindow.on('resize', () => {
+      if (DIAG) this.diag.appResizeEvents++;
       if (!this.isDragging || !this.dragStartWidth || !this.dragStartHeight) return;
       if (!this.appWindow || this.appWindow.isDestroyed()) return;
       const bounds = this.appWindow.getBounds();
       if (bounds.width !== this.dragStartWidth || bounds.height !== this.dragStartHeight) {
+        if (DIAG) this.diag.appResizeCorrects++;
         this.appWindow.setSize(this.dragStartWidth, this.dragStartHeight, false);
       }
     });
@@ -134,10 +166,12 @@ class WindowManager {
     // triggers the same spurious native resize quirk as appWindow — correct
     // it back to the known-good size so its <canvas> never sees a false resize.
     this.shaderWindow.on('resize', () => {
+      if (DIAG) this.diag.shaderResizeEvents++;
       if (!this.isDragging || !this.dragStartWidth || !this.dragStartHeight) return;
       if (!this.shaderWindow || this.shaderWindow.isDestroyed()) return;
       const bounds = this.shaderWindow.getBounds();
       if (bounds.width !== this.dragStartWidth || bounds.height !== this.dragStartHeight) {
+        if (DIAG) this.diag.shaderResizeCorrects++;
         this.shaderWindow.setSize(this.dragStartWidth, this.dragStartHeight, false);
       }
     });
@@ -259,8 +293,9 @@ class WindowManager {
     const flushPositionSync = () => {
       if (!this.shaderWindow || !this.appWindow) return;
       if (this.shaderWindow.isDestroyed() || this.appWindow.isDestroyed()) return;
-      const { x, y } = this.appWindow.getBounds();
-      this.shaderWindow.setPosition(x, y, false);
+      if (DIAG) this.diag.shaderSyncPos++;
+      const b = this.appWindow.getBounds();
+      this.shaderWindow.setBounds({ x: b.x, y: b.y, width: b.width, height: b.height }, false);
     };
     const syncPosition = this.createFrameThrottle(flushPositionSync);
 
@@ -299,7 +334,10 @@ class WindowManager {
       }, 75);
     };
 
-    this.appWindow.on('move', syncPosition);
+    this.appWindow.on('move', () => {
+      if (DIAG) this.diag.appMoveEvents++;
+      syncPosition();
+    });
     this.appWindow.on('resize', syncFullBounds);
 
     this.appWindow.on('maximize', () => {
@@ -429,14 +467,34 @@ class WindowManager {
       this.dragOffsetY = position.y - bounds.y;
       this.dragStartWidth = bounds.width;
       this.dragStartHeight = bounds.height;
+      if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
+        this.shaderWindow.webContents.send('app-drag-state', true);
+      }
+      if (DIAG && !this.diagTimer) {
+        this.diagTimer = setInterval(() => this.diagLogTick(), 1000);
+      }
     });
 
     ipcMain.on('window-drag-move', (event, position) => {
       if (!isAppWindowSender(event) || !this.isDragging || !isValidScreenPosition(position)) return;
-      this.appWindow.setPosition(
-        Math.round(position.x - this.dragOffsetX),
-        Math.round(position.y - this.dragOffsetY),
-      );
+      if (DIAG) this.diag.dragMoveIpc++;
+      const t0 = DIAG ? performance.now() : 0;
+      // setBounds with the full rect (not bare setPosition) prevents the
+      // Windows frameless-window quirk where setPosition drifts the height
+      // and fires ~50 spurious resize events/sec mid-drag, each forcing a
+      // full Chromium re-layout of the renderer.
+      this.appWindow.setBounds({
+        x: Math.round(position.x - this.dragOffsetX),
+        y: Math.round(position.y - this.dragOffsetY),
+        width: this.dragStartWidth,
+        height: this.dragStartHeight,
+      });
+      if (DIAG) {
+        this.diag.setPosition++;
+        const dt = performance.now() - t0;
+        this.diag.setPosMs += dt;
+        if (dt > this.diag.setPosMaxMs) this.diag.setPosMaxMs = dt;
+      }
     });
 
     ipcMain.on('window-drag-end', (event) => {
@@ -444,6 +502,10 @@ class WindowManager {
       this.isDragging = false;
       this.dragStartWidth = null;
       this.dragStartHeight = null;
+      if (this.diagTimer) { clearInterval(this.diagTimer); this.diagTimer = null; }
+      if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
+        this.shaderWindow.webContents.send('app-drag-state', false);
+      }
       // Guarantee the overlay lands on the exact final bounds, bypassing the throttle's trailing delay.
       this.flushWindowSync?.();
     });
@@ -477,6 +539,7 @@ class WindowManager {
     // Forward mouse position from app_window to shader_window for custom cursor
     ipcMain.on('cursor-move', (_event, pos) => {
       if (!pos || !Number.isFinite(pos.x) || !Number.isFinite(pos.y)) return;
+      if (DIAG) this.diag.cursorIpc++;
       if (this.shaderWindow && !this.shaderWindow.isDestroyed()) {
         this.shaderWindow.webContents.send('cursor-move', pos);
       }

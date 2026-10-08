@@ -86,6 +86,10 @@ async function main() {
   let trackEndedHandler: (() => void) | null = null;
   let unsubscribeThemeColors: (() => void) | undefined;
   let pipelineCleanedUp = false;
+  // Set by main.cjs via IPC: while the app window is being dragged, every
+  // native resize event here is spurious (Windows setPosition quirk), so the
+  // DOM resize handler must not realloc the WebGL framebuffer.
+  let appDragging = false;
 
   const stopPipeline = () => {
     if (pipelineCleanedUp) return;
@@ -206,6 +210,10 @@ async function main() {
 
     // 5. Handle window resizing
     resizeHandler = () => {
+      // Ungated diagnostic: prints whenever a DOM resize reaches the shader window
+      // (open DevTools on the shader window to see; main.cjs logs flag spurious ones)
+      console.log('[DRAG-DIAG-SHADER] dom-resize', window.innerWidth, window.innerHeight);
+      if (appDragging) return; // spurious mid-drag resize; skip GL buffer realloc
       if (renderer) {
         const dpr = window.devicePixelRatio || 1;
         const w = window.innerWidth;
@@ -250,6 +258,11 @@ async function main() {
       return;
     }
     console.log('CHECKPOINT: notifyShaderWindowReady() called');
+
+    // Track app-window drag state so the resize handler can skip spurious events
+    api?.onAppDragState((dragging: boolean) => {
+      appDragging = dragging;
+    });
 
     // ── Custom cursor: listen for mouse position from the app window ─────────
     if (customCursor && api) {

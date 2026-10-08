@@ -26,6 +26,7 @@ export interface ElectronAPI {
   onCursorMove: (callback: (position: CursorPosition) => void) => () => void;
   onApplyShader: (callback: (shaderName: string) => void) => () => void;
   onShaderColorsUpdate: (callback: (colors: number[]) => void) => () => void;
+  onAppDragState: (callback: (dragging: boolean) => void) => () => void;
 }
 
 declare global {

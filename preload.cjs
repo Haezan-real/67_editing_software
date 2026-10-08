@@ -86,6 +86,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onCursorMove: callback => subscribe('cursor-move', callback),
   onApplyShader: callback => subscribe('apply-shader', callback),
   onShaderColorsUpdate: callback => subscribe('shader-colors-update', callback),
+  onAppDragState: callback => subscribe('app-drag-state', callback),
   getWindowSourceId: () => ipcRenderer.invoke('get-window-source-id'),
   getWindowSourceDesktopId: () => ipcRenderer.invoke('get-window-source-desktop-id'),
   notifyShaderWindowReady: () => ipcRenderer.send('shader-window-ready'),
