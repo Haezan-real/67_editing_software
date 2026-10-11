@@ -12,6 +12,7 @@ import neonGridFrag from './neonGrid.frag?raw';
 import plasmaMorphVert from './plasmaMorph.vert?raw';
 import plasmaMorphFrag from './plasmaMorph.frag?raw';
 
+
 export const baseShaders = {
   neonGrid: { vert: neonGridVert, frag: neonGridFrag },
   plasmaMorph: { vert: plasmaMorphVert, frag: plasmaMorphFrag },
@@ -24,6 +25,10 @@ export type BaseShaderName = keyof typeof baseShaders;
 export const panelAssignments: Record<string, BaseShaderName> = {
   viewerBackground: 'neonGrid',
 };
+
+//NOTEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+//to update shaders, you need to do npm run build AND THEN npx electron main.cjs
+//if you don't do npm run build, the shaders won't update
 
 // Resolved sources per panel, consumed by canvas components.
 export const viewerBackgroundVert = baseShaders[panelAssignments.viewerBackground].vert;

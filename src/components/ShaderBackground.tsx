@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const DEFAULT_SHADER = 'haezans_shader';
 const ACTIVE_SHADER_KEY = 'juicecut.shaders.active';
@@ -16,17 +16,22 @@ interface ShaderSources {
   frag: string;
 }
 
-async function loadShaderSources(shaderName: string): Promise<ShaderSources | null> {
-  try {
-    const mod = await import(`../shaders/${shaderName}/index.ts`);
-    return {
-      vert: mod.viewerBackgroundVert as string,
-      frag: mod.viewerBackgroundFrag as string,
-    };
-  } catch (e) {
-    console.error(`ShaderBackground: failed to load shader "${shaderName}"`, e);
+// Eager glob: shader sources are statically wired into this module's HMR
+// graph. Editing a shader's index.ts or .frag/.vert re-executes this module
+// with the fresh sources, and import.meta.hot.accept fires AFTER the update —
+// unlike a runtime dynamic import, which resolves through a cached module map.
+const shaderModules = import.meta.glob('../shaders/*/index.ts', { eager: true }) as Record<string, Record<string, unknown>>;
+
+function loadShaderSources(shaderName: string): ShaderSources | null {
+  const mod = shaderModules[`../shaders/${shaderName}/index.ts`];
+  if (!mod) {
+    console.error(`ShaderBackground: no shader module for "${shaderName}"`);
     return null;
   }
+  return {
+    vert: mod.viewerBackgroundVert as string,
+    frag: mod.viewerBackgroundFrag as string,
+  };
 }
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader | null {
@@ -45,6 +50,15 @@ function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLSh
 /** Full-screen procedural shader behind the viewer canvas, loaded from the selected shader pack. */
 export default function ShaderBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  // Editing a shader file re-executes this module (eager glob is in the HMR
+  // graph); the accept handler fires after sources are fresh, so bump the
+  // nonce to tear down and rebuild the GL program.
+  useEffect(() => {
+    if (!import.meta.hot) return;
+    import.meta.hot.accept(() => setReloadNonce(n => n + 1));
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,8 +74,8 @@ export default function ShaderBackground() {
     let ro: ResizeObserver | null = null;
     let cleanupGL: (() => void) | null = null;
 
-    const setup = async (shaderName: string) => {
-      const sources = await loadShaderSources(shaderName);
+    const setup = (shaderName: string) => {
+      const sources = loadShaderSources(shaderName);
       if (!sources || disposed) return;
 
       const vs = compile(gl, gl.VERTEX_SHADER, sources.vert);
@@ -152,7 +166,7 @@ export default function ShaderBackground() {
       cleanupGL?.();
       window.removeEventListener('juicecut-shader-change', onShaderChange);
     };
-  }, []);
+  }, [reloadNonce]);
 
   return <canvas ref={canvasRef} className="shader-background" />;
 }
